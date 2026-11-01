@@ -27,13 +27,13 @@ final class RecordingWriter: @unchecked Sendable {
     private var firstError: String?
     private var didReportFailure = false
 
-    init(url: URL, width: Int, height: Int, systemAudio: Bool, microphone: Bool, onFailure: @escaping (Error) -> Void = { _ in }) throws {
+    init(url: URL, width: Int, height: Int, systemAudio: Bool, microphone: Bool, frameRate: RecordingFrameRate = .fps60, bitrate: RecordingBitrate = .balanced, onFailure: @escaping (Error) -> Void = { _ in }) throws {
         self.onFailure = onFailure
         writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
         video = AVAssetWriterInput(mediaType: .video, outputSettings: [
             AVVideoCodecKey: AVVideoCodecType.h264,
             AVVideoWidthKey: width, AVVideoHeightKey: height,
-            AVVideoCompressionPropertiesKey: [AVVideoAverageBitRateKey: min(20_000_000, max(2_000_000, width * height * 5))]
+            AVVideoCompressionPropertiesKey: [AVVideoAverageBitRateKey: bitrate.bitsPerSecond(width: width, height: height, frameRate: frameRate)]
         ])
         self.systemAudio = systemAudio ? Self.audioInput() : nil
         self.microphone = microphone ? Self.audioInput() : nil

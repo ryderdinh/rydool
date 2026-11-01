@@ -35,6 +35,15 @@ final class RecordingGeometryTests: XCTestCase {
         XCTAssertEqual(rotated.pixelHeight, 1280)
     }
 
+    func testBitrateRespondsToQualityAndFrameRate() {
+        let compact = RecordingBitrate.compact.bitsPerSecond(width: 1920, height: 1080, frameRate: .fps60)
+        let balanced = RecordingBitrate.balanced.bitsPerSecond(width: 1920, height: 1080, frameRate: .fps60)
+        let high = RecordingBitrate.high.bitsPerSecond(width: 1920, height: 1080, frameRate: .fps60)
+        XCTAssertLessThan(compact, balanced)
+        XCTAssertLessThan(balanced, high)
+        XCTAssertLessThan(RecordingBitrate.balanced.bitsPerSecond(width: 1920, height: 1080, frameRate: .fps30), balanced)
+    }
+
     func testRejectsEmptyInvalidAndOversizedSelections() {
         let screen = CGRect(x: 0, y: 0, width: 20000, height: 100)
         XCTAssertNil(RecordingGeometry(screenFrame: screen, selection: .zero, scale: 1))

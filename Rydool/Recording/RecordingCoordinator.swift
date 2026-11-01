@@ -79,7 +79,7 @@ final class RecordingCoordinator: ObservableObject {
     private func begin(_ options: RecordingOptions, selection: CGRect) {
         guard let id = options.screen.displayID,
               let geometry = RecordingGeometry(screenFrame: options.screen.frame, selection: selection,
-                                               scale: options.screen.backingScaleFactor) else {
+                                               scale: options.screen.backingScaleFactor, resolution: options.resolution) else {
             phase = .idle
             Alerts.show(title: L("Couldn't start recording"), message: L("Select a valid area and try again."))
             return
@@ -100,7 +100,7 @@ final class RecordingCoordinator: ObservableObject {
             temporaryURL = url
             do {
                 let recording = try await ScreenRecordingStream.start(displayID: id, geometry: geometry, outputURL: url,
-                    systemAudio: options.systemAudio, microphone: options.microphone) { [weak self] error in
+                    systemAudio: options.systemAudio, microphone: options.microphone, frameRate: options.frameRate, bitrate: options.bitrate) { [weak self] error in
                         Task { @MainActor in self?.streamFailed(error) }
                     }
                 stream = recording

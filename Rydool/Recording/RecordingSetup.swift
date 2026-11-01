@@ -6,6 +6,9 @@ struct RecordingOptions {
     let area: Bool
     let systemAudio: Bool
     let microphone: Bool
+    let resolution: RecordingResolution
+    let frameRate: RecordingFrameRate
+    let bitrate: RecordingBitrate
 }
 
 @MainActor
@@ -62,7 +65,7 @@ private struct RecordingSetupView: View {
                 Button(L("Cancel"), action: onCancel).keyboardShortcut(.cancelAction)
                 Button(area ? L("Select area") : L("Start recording")) {
                     guard let screen = NSScreen.screens.first(where: { $0.displayID == selectedDisplay }) else { return }
-                    onStart(RecordingOptions(screen: screen, area: area, systemAudio: systemAudio, microphone: microphone))
+                    onStart(RecordingOptions(screen: screen, area: area, systemAudio: systemAudio, microphone: microphone, resolution: settings.recordingResolution, frameRate: settings.recordingFrameRate, bitrate: settings.recordingBitrate))
                 }.keyboardShortcut(.defaultAction)
             }
         }

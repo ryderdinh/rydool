@@ -36,14 +36,14 @@ final class ScreenRecordingStream: NSObject, SCStreamOutput, SCStreamDelegate, A
 
     @MainActor
     static func start(displayID: CGDirectDisplayID, geometry: RecordingGeometry, outputURL: URL,
-                      systemAudio: Bool, microphone: Bool, onFailure: @escaping (Error) -> Void) async throws -> ScreenRecordingStream {
+                      systemAudio: Bool, microphone: Bool, frameRate: RecordingFrameRate, bitrate: RecordingBitrate, onFailure: @escaping (Error) -> Void) async throws -> ScreenRecordingStream {
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
         guard let display = content.displays.first(where: { $0.displayID == displayID }) else { throw StreamError.displayUnavailable }
         let config = SCStreamConfiguration()
         config.sourceRect = geometry.sourceRect
         config.width = geometry.pixelWidth
         config.height = geometry.pixelHeight
-        config.minimumFrameInterval = CMTime(value: 1, timescale: 60)
+        config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(frameRate.rawValue))
         config.queueDepth = 5
         config.showsCursor = true
         config.capturesAudio = systemAudio
@@ -64,7 +64,7 @@ final class ScreenRecordingStream: NSObject, SCStreamOutput, SCStreamDelegate, A
             micSession = session
         } else { micSession = nil }
         let writer = try RecordingWriter(url: outputURL, width: geometry.pixelWidth, height: geometry.pixelHeight,
-                                         systemAudio: systemAudio, microphone: microphone, onFailure: onFailure)
+                                         systemAudio: systemAudio, microphone: microphone, frameRate: frameRate, bitrate: bitrate, onFailure: onFailure)
         let recording = ScreenRecordingStream(writer: writer, outputURL: outputURL, combineAudio: systemAudio && microphone, filter: filter, configuration: config, microphone: micSession, onFailure: onFailure)
         let stream = recording.stream!
         if let micSession {
