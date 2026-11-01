@@ -48,7 +48,13 @@ final class RecordingCoordinator: ObservableObject {
             if phase == .pendingSave { savePending() }
             return
         }
-        guard ScreenAccess.isGranted else { PermissionWindowController.shared.show(); return }
+        #if DEBUG
+        let env = ProcessInfo.processInfo.environment
+        let testSetup = env["RYDOOL_TEST_RECORDING_SETUP"] == "1" && env["RYDOOL_TEST_DATA_DIR"] != nil && env["RYDOOL_TEST_DEFAULTS"] != nil && env["RYDOOL_TEST_PASTEBOARD"] != nil
+        #else
+        let testSetup = false
+        #endif
+        guard ScreenAccess.isGranted || testSetup else { PermissionWindowController.shared.show(); return }
         let setup = RecordingSetupWindow { [weak self] options in self?.chooseArea(options) }
         self.setup = setup
         setup.show()
