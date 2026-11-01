@@ -22,6 +22,7 @@ final class ScreenRecordingStream: NSObject, SCStreamOutput, SCStreamDelegate, A
     private let sampleQueue = DispatchQueue(label: "com.rydool.recording.samples")
     private let microphoneQueue = DispatchQueue(label: "com.rydool.recording.microphone")
     private let onFailure: (Error) -> Void
+    private var microphoneObservers: [NSObjectProtocol] = []
 
     private init(writer: RecordingWriter, outputURL: URL, combineAudio: Bool, filter: SCContentFilter, configuration: SCStreamConfiguration, microphone: AVCaptureSession?, onFailure: @escaping (Error) -> Void) {
         self.writer = writer
@@ -66,6 +67,18 @@ final class ScreenRecordingStream: NSObject, SCStreamOutput, SCStreamDelegate, A
                                          systemAudio: systemAudio, microphone: microphone, onFailure: onFailure)
         let recording = ScreenRecordingStream(writer: writer, outputURL: outputURL, combineAudio: systemAudio && microphone, filter: filter, configuration: config, microphone: micSession, onFailure: onFailure)
         let stream = recording.stream!
+        if let micSession {
+            let center = NotificationCenter.default
+            recording.microphoneObservers = [
+                center.addObserver(forName: AVCaptureSession.runtimeErrorNotification, object: micSession, queue: .main) { [weak recording] notification in
+                    let error = notification.userInfo?[AVCaptureSessionErrorKey] as? Error ?? StreamError.microphoneUnavailable
+                    recording?.onFailure(error)
+                },
+                center.addObserver(forName: AVCaptureSession.wasInterruptedNotification, object: micSession, queue: .main) { [weak recording] _ in
+                    recording?.onFailure(StreamError.microphoneUnavailable)
+                }
+            ]
+        }
         do {
             try stream.addStreamOutput(recording, type: .screen, sampleHandlerQueue: recording.sampleQueue)
             if systemAudio { try stream.addStreamOutput(recording, type: .audio, sampleHandlerQueue: recording.sampleQueue) }
@@ -82,7 +95,12 @@ final class ScreenRecordingStream: NSObject, SCStreamOutput, SCStreamDelegate, A
         }
     }
 
+    deinit { microphoneObservers.forEach { NotificationCenter.default.removeObserver($0) } }
+
+    @MainActor
     func stop() async throws {
+        microphoneObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        microphoneObservers.removeAll()
         let endTime = CMClockGetTime(CMClockGetHostTimeClock())
         _ = await setMicrophoneRunning(false)
         // A stream may already have stopped after an interruption; still finalize the frames received.
