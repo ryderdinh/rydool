@@ -3,7 +3,7 @@ import SwiftUI
 /// A command and its presentation in the status menu.
 private struct MenuCommand: Identifiable {
     enum Identifier: Hashable {
-        case captureArea, captureScreen, recent, permission, history, tracking, settings, quit
+        case captureArea, captureScreen, record, recent, permission, history, tracking, settings, quit
     }
     enum Trailing {
         case none, shortcut(String), detail(String)
@@ -22,9 +22,11 @@ struct MenuBarView: View {
     @ObservedObject var permission: PermissionStatus
     @ObservedObject var history = ClipboardHistory.shared
     @ObservedObject var previews = ScreenshotPreviews.shared
+    @ObservedObject var recording = RecordingCoordinator.shared
     let onHistory: () -> Void
     let onFullScreen: () -> Void
     let onCapture: () -> Void
+    let onRecording: () -> Void
     let onRecentScreenshots: () -> Void
     let onGrantPermission: () -> Void
     let onSettings: () -> Void
@@ -50,10 +52,13 @@ struct MenuBarView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text("Rydool").font(.system(size: 14, weight: .semibold))
                 HStack(spacing: 5) {
-                    Circle().fill(history.tracking ? Color.green : Color.secondary).frame(width: 6, height: 6)
-                    Text(history.tracking ? L("History on") : L("History paused"))
-                        .font(.system(size: 11)).foregroundStyle(.secondary)
-                }
+                    Circle().fill(recording.phase == .recording ? Color.red : history.tracking ? Color.green : Color.secondary).frame(width: 6, height: 6)
+                    if recording.phase == .recording, let start = recording.startedAt {
+                        Text(L("Recording…")) + Text(" ") + Text(start, style: .timer)
+                    } else {
+                        Text(history.tracking ? L("History on") : L("History paused"))
+                    }
+                }.font(.system(size: 11)).foregroundStyle(.secondary)
             }
             Spacer()
         }
@@ -75,6 +80,16 @@ struct MenuBarView: View {
             MenuCommand(id: .captureScreen, symbol: "rectangle.dashed", title: L("Capture Full Screen"),
                         trailing: .shortcut(settings.fullScreenShortcut.displayString), action: onFullScreen)
         ]
+        let recordingTitle: String
+        switch recording.phase {
+        case .idle: recordingTitle = L("Record Screen")
+        case .preparing: recordingTitle = L("Preparing recording…")
+        case .recording: recordingTitle = L("Stop recording")
+        case .finishing: recordingTitle = L("Finishing recording…")
+        case .pendingSave: recordingTitle = L("Save recording…")
+        }
+        commands.append(MenuCommand(id: .record, symbol: recording.phase == .recording ? "stop.circle.fill" : "record.circle",
+                                    title: recordingTitle, warning: recording.phase == .recording, action: onRecording))
         if previews.hiddenCount > 0 {
             commands.append(MenuCommand(id: .recent, symbol: "photo.stack", title: L("Recent Screenshots"),
                                         trailing: .detail("\(previews.hiddenCount)"), action: onRecentScreenshots))
