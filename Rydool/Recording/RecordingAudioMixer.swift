@@ -6,7 +6,7 @@ enum RecordingAudioMixer {
         case cannotExport, exportFailed(String)
         var errorDescription: String? {
             switch self {
-            case .cannotExport: return "Cannot combine the recording audio."
+            case .cannotExport: return L("Cannot combine the recording audio.")
             case .exportFailed(let detail): return detail
             }
         }
@@ -43,7 +43,7 @@ enum RecordingAudioMixer {
         export.outputFileType = .mp4
         export.audioMix = audioMix
         await export.export()
-        guard export.status == .completed else { throw MixError.exportFailed(export.error?.localizedDescription ?? "Cannot combine the recording audio.") }
+        guard export.status == .completed else { throw MixError.exportFailed(export.error?.localizedDescription ?? L("Cannot combine the recording audio.")) }
         _ = try FileManager.default.replaceItemAt(url, withItemAt: mixed)
     }
 }

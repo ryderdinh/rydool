@@ -8,8 +8,8 @@ final class ScreenRecordingStream: NSObject, SCStreamOutput, SCStreamDelegate, A
         case displayUnavailable, microphoneUnavailable
         var errorDescription: String? {
             switch self {
-            case .displayUnavailable: return "The selected display is no longer available."
-            case .microphoneUnavailable: return "The microphone is unavailable."
+            case .displayUnavailable: return L("The selected display is no longer available.")
+            case .microphoneUnavailable: return L("The microphone is unavailable.")
             }
         }
     }

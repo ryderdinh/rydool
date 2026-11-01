@@ -7,8 +7,8 @@ final class RecordingWriter: @unchecked Sendable {
         case cannotAddTrack, noVideo, failed(String)
         var errorDescription: String? {
             switch self {
-            case .cannotAddTrack: return "Cannot configure the recording tracks."
-            case .noVideo: return "No video frames were recorded."
+            case .cannotAddTrack: return L("Cannot configure the recording tracks.")
+            case .noVideo: return L("No video frames were recorded.")
             case .failed(let message): return message
             }
         }
@@ -39,7 +39,7 @@ final class RecordingWriter: @unchecked Sendable {
             guard writer.canAdd(input) else { throw WriterError.cannotAddTrack }
             writer.add(input)
         }
-        guard writer.startWriting() else { throw WriterError.failed(writer.error?.localizedDescription ?? "Cannot start video writer.") }
+        guard writer.startWriting() else { throw WriterError.failed(writer.error?.localizedDescription ?? L("Cannot start video writer.")) }
     }
 
     private static func audioInput() -> AVAssetWriterInput {
@@ -71,7 +71,7 @@ final class RecordingWriter: @unchecked Sendable {
             case .microphone: input = microphone
             }
             if let input, input.isReadyForMoreMediaData, !input.append(sample), firstError == nil {
-                firstError = writer.error?.localizedDescription ?? "Cannot write recording data."
+                firstError = writer.error?.localizedDescription ?? L("Cannot write recording data.")
             }
         }
     }
@@ -88,7 +88,7 @@ final class RecordingWriter: @unchecked Sendable {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.async { [self] in
                 guard !stopped else {
-                    continuation.resume(throwing: WriterError.failed("Recording has already stopped."))
+                    continuation.resume(throwing: WriterError.failed(L("Recording has already stopped.")))
                     return
                 }
                 stopped = true
@@ -98,7 +98,7 @@ final class RecordingWriter: @unchecked Sendable {
                     return
                 }
                 if writer.status == .failed {
-                    continuation.resume(throwing: WriterError.failed(writer.error?.localizedDescription ?? "Cannot write recording data."))
+                    continuation.resume(throwing: WriterError.failed(writer.error?.localizedDescription ?? L("Cannot write recording data.")))
                     return
                 }
                 guard startedAt != nil else {
@@ -112,7 +112,7 @@ final class RecordingWriter: @unchecked Sendable {
                 [video, systemAudio, microphone].compactMap { $0 }.forEach { $0.markAsFinished() }
                 writer.finishWriting { [writer] in
                     if writer.status == .completed { continuation.resume() }
-                    else { continuation.resume(throwing: WriterError.failed(writer.error?.localizedDescription ?? "Cannot finish recording.")) }
+                    else { continuation.resume(throwing: WriterError.failed(writer.error?.localizedDescription ?? L("Cannot finish recording."))) }
                 }
             }
         }
