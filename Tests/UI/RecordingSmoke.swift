@@ -54,9 +54,9 @@ if regionMode {
     guard CGGetDisplaysWithPoint(pointer, 1, &display, &count) == .success, count > 0 else { fail("Cannot find display") }
     let bounds = CGDisplayBounds(display)
     let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
-    expectedRegionWidth = bounds.width * 0.6 * (screen?.backingScaleFactor ?? 1)
-    let from = CGPoint(x: bounds.minX + bounds.width * 0.2, y: bounds.minY + bounds.height * 0.2)
-    let to = CGPoint(x: bounds.minX + bounds.width * 0.8, y: bounds.minY + bounds.height * 0.8)
+    expectedRegionWidth = bounds.width * 0.35 * (screen?.backingScaleFactor ?? 1)
+    let from = CGPoint(x: bounds.minX + bounds.width * 0.1, y: bounds.minY + bounds.height * 0.1)
+    let to = CGPoint(x: bounds.minX + bounds.width * 0.45, y: bounds.minY + bounds.height * 0.4)
     func mouse(_ type: CGEventType, _ point: CGPoint) {
         guard let event = CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: point, mouseButton: .left) else { fail("Cannot create mouse event") }
         event.post(tap: .cghidEventTap); Thread.sleep(forTimeInterval: 0.15)
@@ -127,6 +127,13 @@ Task {
         let size = try await video.load(.naturalSize)
         if regionMode {
             guard abs(size.width - expectedRegionWidth) < 8 else { fail("Recorded area has unexpected width: \(size.width), expected \(expectedRegionWidth)") }
+            let generator = AVAssetImageGenerator(asset: asset)
+            let image = try await generator.image(at: CMTime(seconds: 1, preferredTimescale: 600)).image
+            let bitmap = NSBitmapImageRep(cgImage: image)
+            guard let color = bitmap.colorAt(x: bitmap.pixelsWide / 2, y: bitmap.pixelsHigh / 2)?.usingColorSpace(.deviceRGB),
+                  color.redComponent > 0.7, color.greenComponent < 0.35, color.blueComponent < 0.35 else {
+                fail("Recorded region does not contain the selected red test area")
+            }
         }
         print("PASS: recorded \(regionMode ? "region" : "screen")\(systemAudio ? " with system audio" : "")\(microphone ? " and microphone" : "") to isolated MP4 (\(String(format: "%.1f", duration.seconds)) seconds)")
         sem.signal()

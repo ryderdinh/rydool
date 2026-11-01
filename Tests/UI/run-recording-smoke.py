@@ -36,6 +36,13 @@ with tempfile.TemporaryDirectory(prefix="rydool-real-recording-") as directory:
         return {int(line.strip().split(None, 1)[0]) for line in listing.splitlines()
                 if line.strip().endswith(str(app))}
 
+    backdrop = None
+    if "--region" in sys.argv:
+        backdrop = subprocess.Popen(["swift", str(root / "Tests/UI/RecordingBackdrop.swift")],
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(2)
+        if backdrop.poll() is not None:
+            raise SystemExit("Could not launch recording test backdrop")
     previous_pids = running_pids()
     args = ["open", "-n"]
     for key in keys:
@@ -60,4 +67,7 @@ with tempfile.TemporaryDirectory(prefix="rydool-real-recording-") as directory:
                 os.kill(pid, signal.SIGTERM)
             except ProcessLookupError:
                 pass
+        if backdrop is not None:
+            backdrop.terminate()
+            backdrop.wait(timeout=5)
         subprocess.run(["defaults", "delete", suite], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
