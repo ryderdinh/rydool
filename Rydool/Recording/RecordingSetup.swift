@@ -19,7 +19,7 @@ final class RecordingSetupWindow: NSObject, NSWindowDelegate {
 
     func show() {
         guard !NSScreen.screens.isEmpty else { return }
-        let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 430, height: 360),
+        let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 590),
                              styleMask: [.titled, .closable], backing: .buffered, defer: false)
         panel.title = L("Record Screen")
         panel.isReleasedWhenClosed = false
@@ -45,33 +45,118 @@ private struct RecordingSetupView: View {
     let onStart: (RecordingOptions) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text(L("Record Screen")).font(.title2.bold())
-            Picker(L("Display"), selection: $selectedDisplay) {
-                ForEach(NSScreen.screens, id: \.displayID) { screen in
-                    if let id = screen.displayID { Text(screen.localizedName).tag(id) }
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 13) {
+                Image(systemName: "record.circle.fill")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(.white)
+                    .frame(width: 46, height: 46)
+                    .background(Color.red.gradient, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(L("Record Screen")).font(.system(size: 21, weight: .bold))
+                    Text(L("Choose what to capture and how to save it."))
+                        .font(.system(size: 12)).foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                sectionTitle(L("CAPTURE"))
+                card {
+                    HStack(spacing: 10) {
+                        Image(systemName: "display").foregroundStyle(Color.accentColor).frame(width: 22)
+                        Text(L("Display")).fontWeight(.medium)
+                        Spacer()
+                        Picker(L("Display"), selection: $selectedDisplay) {
+                            ForEach(NSScreen.screens, id: \.displayID) { screen in
+                                if let id = screen.displayID { Text(screen.localizedName).tag(id) }
+                            }
+                        }.labelsHidden().frame(maxWidth: 230)
+                    }
+                    Divider()
+                    Picker(L("Capture"), selection: $area) {
+                        Text(L("Full screen")).tag(false)
+                        Text(L("Selected area")).tag(true)
+                    }.pickerStyle(.segmented).labelsHidden()
                 }
             }
-            Picker(L("Capture"), selection: $area) {
-                Text(L("Full screen")).tag(false)
-                Text(L("Selected area")).tag(true)
-            }.pickerStyle(.segmented)
-            Divider()
-            Toggle(L("System audio"), isOn: $systemAudio)
-            Toggle(L("Microphone"), isOn: $microphone)
-            Spacer()
-            HStack {
+
+            VStack(alignment: .leading, spacing: 8) {
+                sectionTitle(L("VIDEO QUALITY"))
+                card {
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(L("Resolution")).fontWeight(.medium)
+                            Text(L("Never enlarges the selected area"))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Picker(L("Resolution"), selection: $settings.recordingResolution) {
+                            ForEach(RecordingResolution.allCases) { Text($0.title).tag($0) }
+                        }.labelsHidden().frame(width: 135)
+                    }
+                    Divider()
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(L("Frame rate")).fontWeight(.medium)
+                            Picker(L("Frame rate"), selection: $settings.recordingFrameRate) {
+                                ForEach(RecordingFrameRate.allCases) { Text($0.title).tag($0) }
+                            }.pickerStyle(.segmented).labelsHidden()
+                        }
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(L("Quality")).fontWeight(.medium)
+                            Picker(L("Quality"), selection: $settings.recordingBitrate) {
+                                ForEach(RecordingBitrate.allCases) { Text($0.title).tag($0) }
+                            }.labelsHidden()
+                        }
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                sectionTitle(L("AUDIO"))
+                card {
+                    HStack(spacing: 10) {
+                        Image(systemName: "speaker.wave.2").foregroundStyle(Color.accentColor).frame(width: 22)
+                        Toggle(L("System audio"), isOn: $systemAudio).toggleStyle(.switch).controlSize(.small).accessibilityLabel(L("System audio"))
+                    }
+                    Divider()
+                    HStack(spacing: 10) {
+                        Image(systemName: "mic").foregroundStyle(Color.accentColor).frame(width: 22)
+                        Toggle(L("Microphone"), isOn: $microphone).toggleStyle(.switch).controlSize(.small).accessibilityLabel(L("Microphone"))
+                    }
+                }
+            }
+            Spacer(minLength: 0)
+            HStack(spacing: 10) {
+                Text(L("Saved as MP4")).font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button(L("Cancel"), action: onCancel).keyboardShortcut(.cancelAction)
                 Button(area ? L("Select area") : L("Start recording")) {
                     guard let screen = NSScreen.screens.first(where: { $0.displayID == selectedDisplay }) else { return }
-                    onStart(RecordingOptions(screen: screen, area: area, systemAudio: systemAudio, microphone: microphone, resolution: settings.recordingResolution, frameRate: settings.recordingFrameRate, bitrate: settings.recordingBitrate))
-                }.keyboardShortcut(.defaultAction)
+                    onStart(RecordingOptions(screen: screen, area: area, systemAudio: systemAudio, microphone: microphone,
+                                             resolution: settings.recordingResolution, frameRate: settings.recordingFrameRate,
+                                             bitrate: settings.recordingBitrate))
+                }.buttonStyle(.borderedProminent).tint(.red).keyboardShortcut(.defaultAction)
             }
         }
-        .padding(24)
-        .frame(width: 430, height: 360)
+        .padding(22)
+        .frame(width: 520, height: 590)
     }
+
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title).font(.system(size: 10, weight: .semibold)).tracking(0.6).foregroundStyle(.secondary)
+    }
+
+    private func card<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 10, content: content)
+            .font(.system(size: 12))
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).strokeBorder(Color.primary.opacity(0.08), lineWidth: 1))
+    }
+
 }
 
 /// Drag a single rectangle on the selected display; Escape cancels.

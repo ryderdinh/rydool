@@ -37,12 +37,13 @@ enum RecordingBitrate: String, CaseIterable, Identifiable {
     }
     func bitsPerSecond(width: Int, height: Int, frameRate: RecordingFrameRate) -> Int {
         let multiplier: Double
+        let maximum: Double
         switch self {
-        case .compact: multiplier = 3
-        case .balanced: multiplier = 5
-        case .high: multiplier = 8
+        case .compact: (multiplier, maximum) = (3, 12_000_000)
+        case .balanced: (multiplier, maximum) = (5, 20_000_000)
+        case .high: (multiplier, maximum) = (8, 40_000_000)
         }
         let estimate = Double(width) * Double(height) * multiplier * Double(frameRate.rawValue) / 60
-        return Int(min(40_000_000, max(2_000_000, estimate)))
+        return Int(min(maximum, max(2_000_000, estimate)))
     }
 }

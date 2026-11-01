@@ -3,6 +3,7 @@
 import os
 import pathlib
 import subprocess
+import sys
 import tempfile
 import time
 import uuid
@@ -15,13 +16,15 @@ if not app.exists():
 with tempfile.TemporaryDirectory(prefix="rydool-recording-test-") as directory:
     suite = "rydool-test-" + uuid.uuid4().hex
     seed_shortcuts(suite)
+    if "--vi" in sys.argv:
+        subprocess.run(["defaults", "write", suite, "language", "-string", "vi"], check=True)
     env = os.environ.copy()
     env.update(RYDOOL_TEST_DATA_DIR=directory, RYDOOL_TEST_PASTEBOARD=suite,
                RYDOOL_TEST_DEFAULTS=suite, RYDOOL_TEST_RECORDING_SETUP="1")
     process = subprocess.Popen([str(app)], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         time.sleep(2)
-        subprocess.run(["swift", str(root / "Tests/UI/RecordingSetupSmoke.swift"), str(process.pid)],
+        subprocess.run(["swift", str(root / "Tests/UI/RecordingSetupSmoke.swift"), str(process.pid)] + sys.argv[1:],
                        env=env, timeout=30, check=True)
     finally:
         process.terminate()

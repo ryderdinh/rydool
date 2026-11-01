@@ -10,6 +10,10 @@ let systemAudio = CommandLine.arguments.contains("--system-audio")
 let microphone = CommandLine.arguments.contains("--microphone")
 let cancelSave = CommandLine.arguments.contains("--cancel-save")
 let fpsMode = CommandLine.arguments.contains("--fps")
+let limit1080 = CommandLine.arguments.contains("--1080")
+let limit720 = CommandLine.arguments.contains("--720")
+let highQuality = CommandLine.arguments.contains("--high")
+let fps30 = CommandLine.arguments.contains("--fps30")
 var expectedRegionWidth: CGFloat = 0
 func fail(_ message: String) -> Never { fputs("FAIL: \(message)\n", stderr); exit(1) }
 func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
@@ -37,12 +41,35 @@ if find(bar, "Allow Screen Recording") != nil { fail("Screen Recording permissio
 guard let record = find(bar, "Record Screen") else { fail("Recording menu action missing") }
 press(record)
 guard let setup = wait({ windows().first { find($0, "Start recording") != nil } }) else { fail("Recording setup missing") }
-guard let audioToggle = find(setup, "System audio"),
+if limit1080 || limit720 {
+    let label = limit720 ? "720p" : "1080p"
+    guard let picker = find(setup, "Resolution", role: "AXPopUpButton") else { fail("Resolution picker missing") }
+    press(picker)
+    guard let item = wait({ find(setup, label) }) else { fail("Resolution option missing") }
+    press(item)
+    Thread.sleep(forTimeInterval: 0.3)
+    let selected = attribute(picker, kAXValueAttribute as String) as? String ?? ""
+    guard selected.contains(label) else { fail("Resolution did not change: \(selected)") }
+}
+if highQuality {
+    guard let picker = find(setup, "Quality", role: "AXPopUpButton") else { fail("Quality picker missing") }
+    press(picker)
+    Thread.sleep(forTimeInterval: 0.5)
+    if find(setup, "Higher quality") == nil { press(picker); Thread.sleep(forTimeInterval: 0.3) }
+    guard let item = wait({ find(setup, "Higher quality") }) else { fail("Higher quality option missing") }
+    press(item); Thread.sleep(forTimeInterval: 0.3)
+    guard (attribute(picker, kAXValueAttribute as String) as? String)?.contains("Higher quality") == true else { fail("Quality did not change") }
+}
+if fps30 {
+    guard let option = find(setup, "30 FPS", role: "AXRadioButton") else { fail("30 FPS option missing") }
+    press(option)
+}
+guard let audioToggle = find(setup, "System audio", role: "AXCheckBox"),
       let initialAudioValue = attribute(audioToggle, kAXValueAttribute as String) as? NSNumber,
       initialAudioValue.boolValue else { fail("System audio should be enabled by default") }
 if !systemAudio { press(audioToggle) }
 if microphone {
-    guard let toggle = find(setup, "Microphone") else { fail("Microphone toggle missing") }
+    guard let toggle = find(setup, "Microphone", role: "AXCheckBox") else { fail("Microphone toggle missing") }
     press(toggle)
 }
 if regionMode {
@@ -156,9 +183,19 @@ Task {
             guard elapsed > 0, count > 1 else { fail("Not enough frames to measure FPS") }
             let fps = Double(count - 1) / elapsed
             print("Measured FPS with moving content: \(String(format: "%.1f", fps))")
-            guard fps > 30 else { fail("Motion recording did not exceed 30 FPS on this system") }
+            if fps30 {
+                guard fps >= 20 && fps <= 32 else { fail("Recording did not follow the 30 FPS setting") }
+            } else {
+                guard fps > 30 else { fail("Motion recording did not exceed 30 FPS on this system") }
+            }
         }
         let size = try await video.load(.naturalSize)
+        if limit1080 || limit720 {
+            let limit: CGFloat = limit720 ? 720 : 1080
+            let longLimit: CGFloat = limit720 ? 1280 : 1920
+            guard max(size.width, size.height) <= longLimit, min(size.width, size.height) <= limit,
+                  min(size.width, size.height) >= limit - 4 else { fail("Recording dimensions do not match the selected resolution: \(size)") }
+        }
         if regionMode {
             guard abs(size.width - expectedRegionWidth) < 8 else { fail("Recorded area has unexpected width: \(size.width), expected \(expectedRegionWidth)") }
             let generator = AVAssetImageGenerator(asset: asset)
