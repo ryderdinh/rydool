@@ -13,6 +13,7 @@ final class RecordingCoordinator: ObservableObject {
     private var picker: RecordingAreaPicker?
     private var stream: ScreenRecordingStream?
     private var temporaryURL: URL?
+    private var preparationFailure: Error?
     private init() {}
 
     var isBusy: Bool { phase == .preparing || phase == .recording || phase == .finishing }
@@ -78,6 +79,7 @@ final class RecordingCoordinator: ObservableObject {
             return
         }
         phase = .preparing
+        preparationFailure = nil
         Task { @MainActor in
             if options.microphone {
                 let status = AVCaptureDevice.authorizationStatus(for: .audio)
@@ -98,6 +100,10 @@ final class RecordingCoordinator: ObservableObject {
                 stream = recording
                 startedAt = Date()
                 phase = .recording
+                if let error = preparationFailure {
+                    preparationFailure = nil
+                    streamFailed(error)
+                }
             } catch {
                 try? FileManager.default.removeItem(at: url)
                 temporaryURL = nil
@@ -129,6 +135,7 @@ final class RecordingCoordinator: ObservableObject {
     }
 
     private func streamFailed(_ error: Error) {
+        if phase == .preparing { preparationFailure = error; return }
         guard phase == .recording else { return }
         stop()
         Alerts.show(title: L("Recording interrupted"), message: error.localizedDescription)

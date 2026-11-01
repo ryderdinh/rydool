@@ -83,8 +83,8 @@ final class ScreenRecordingStream: NSObject, SCStreamOutput, SCStreamDelegate, A
 
     func stop() async throws {
         await setMicrophoneRunning(false)
-        do { try await stream.stopCapture() }
-        catch { writer.cancel(); throw error }
+        // A stream may already have stopped after an interruption; still finalize the frames received.
+        try? await stream.stopCapture()
         try await writer.finish()
         if combineAudio { try await RecordingAudioMixer.mixIfNeeded(at: outputURL) }
     }
