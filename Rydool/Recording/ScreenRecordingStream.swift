@@ -14,6 +14,8 @@ final class ScreenRecordingStream: NSObject, SCStreamOutput, SCStreamDelegate, A
         }
     }
 
+    private let outputURL: URL
+    private let combineAudio: Bool
     private let writer: RecordingWriter
     private var stream: SCStream!
     private let microphone: AVCaptureSession?
@@ -21,8 +23,10 @@ final class ScreenRecordingStream: NSObject, SCStreamOutput, SCStreamDelegate, A
     private let microphoneQueue = DispatchQueue(label: "com.rydool.recording.microphone")
     private let onFailure: (Error) -> Void
 
-    private init(writer: RecordingWriter, filter: SCContentFilter, configuration: SCStreamConfiguration, microphone: AVCaptureSession?, onFailure: @escaping (Error) -> Void) {
+    private init(writer: RecordingWriter, outputURL: URL, combineAudio: Bool, filter: SCContentFilter, configuration: SCStreamConfiguration, microphone: AVCaptureSession?, onFailure: @escaping (Error) -> Void) {
         self.writer = writer
+        self.outputURL = outputURL
+        self.combineAudio = combineAudio
         self.microphone = microphone
         self.onFailure = onFailure
         super.init()
@@ -60,7 +64,7 @@ final class ScreenRecordingStream: NSObject, SCStreamOutput, SCStreamDelegate, A
         } else { micSession = nil }
         let writer = try RecordingWriter(url: outputURL, width: geometry.pixelWidth, height: geometry.pixelHeight,
                                          systemAudio: systemAudio, microphone: microphone)
-        let recording = ScreenRecordingStream(writer: writer, filter: filter, configuration: config, microphone: micSession, onFailure: onFailure)
+        let recording = ScreenRecordingStream(writer: writer, outputURL: outputURL, combineAudio: systemAudio && microphone, filter: filter, configuration: config, microphone: micSession, onFailure: onFailure)
         let stream = recording.stream!
         do {
             try stream.addStreamOutput(recording, type: .screen, sampleHandlerQueue: recording.sampleQueue)
@@ -82,6 +86,7 @@ final class ScreenRecordingStream: NSObject, SCStreamOutput, SCStreamDelegate, A
         do { try await stream.stopCapture() }
         catch { writer.cancel(); throw error }
         try await writer.finish()
+        if combineAudio { try await RecordingAudioMixer.mixIfNeeded(at: outputURL) }
     }
 
     private func setMicrophoneRunning(_ running: Bool) async {
