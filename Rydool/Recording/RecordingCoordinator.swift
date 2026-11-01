@@ -156,7 +156,7 @@ final class RecordingCoordinator: ObservableObject {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd HH.mm.ss"
         panel.nameFieldStringValue = "Rydool \(formatter.string(from: Date())).mp4"
-        panel.directoryURL = AppSettings.shared.lastSaveDirectory
+        panel.directoryURL = ScreenshotExport.defaultDirectory
         guard panel.runModal() == .OK, let destination = panel.url else { return }
         do {
             // Write via the save panel destination; retain the temporary original on failure.
