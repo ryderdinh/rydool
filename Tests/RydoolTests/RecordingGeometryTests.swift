@@ -20,6 +20,21 @@ final class RecordingGeometryTests: XCTestCase {
         XCTAssertEqual(geometry.pixelHeight, 34)
     }
 
+    func testResolutionPreservesAspectRatioWithoutUpscaling() throws {
+        let frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        let full = try XCTUnwrap(RecordingGeometry(screenFrame: frame, selection: frame, scale: 2, resolution: .hd1080))
+        XCTAssertEqual(full.pixelWidth, 1920)
+        XCTAssertEqual(full.pixelHeight, 1080)
+        XCTAssertEqual(full.sourceRect.size, frame.size)
+        let small = try XCTUnwrap(RecordingGeometry(screenFrame: frame, selection: CGRect(x: 0, y: 0, width: 300, height: 200), scale: 1, resolution: .hd720))
+        XCTAssertEqual(small.pixelWidth, 300)
+        XCTAssertEqual(small.pixelHeight, 200)
+        let portrait = CGRect(x: 0, y: 0, width: 1080, height: 1920)
+        let rotated = try XCTUnwrap(RecordingGeometry(screenFrame: portrait, selection: portrait, scale: 2, resolution: .hd720))
+        XCTAssertEqual(rotated.pixelWidth, 720)
+        XCTAssertEqual(rotated.pixelHeight, 1280)
+    }
+
     func testRejectsEmptyInvalidAndOversizedSelections() {
         let screen = CGRect(x: 0, y: 0, width: 20000, height: 100)
         XCTAssertNil(RecordingGeometry(screenFrame: screen, selection: .zero, scale: 1))

@@ -27,7 +27,7 @@ enum AfterCaptureAction: String, CaseIterable, Identifiable {
 /// The persisted keys are retained for compatibility with existing installations.
 private enum PreferenceKey: String {
     case shortcut, historyShortcut, fullScreenShortcut, recordingShortcut, lastSaveDirectory
-    case annotationColor, language
+    case annotationColor, language, recordingResolution, recordingFrameRate, recordingBitrate
     case lineWeight = "annotationLineWeight"
 }
 
@@ -67,6 +67,9 @@ final class AppSettings: ObservableObject {
     @Published var historyShortcut: ShortcutBinding { didSet { store.save(historyShortcut, key: .historyShortcut) } }
     @Published var fullScreenShortcut: ShortcutBinding { didSet { store.save(fullScreenShortcut, key: .fullScreenShortcut) } }
     @Published var recordingShortcut: ShortcutBinding { didSet { store.save(recordingShortcut, key: .recordingShortcut) } }
+    @Published var recordingResolution: RecordingResolution { didSet { store.defaults.set(recordingResolution.rawValue, forKey: PreferenceKey.recordingResolution.rawValue) } }
+    @Published var recordingFrameRate: RecordingFrameRate { didSet { store.defaults.set(recordingFrameRate.rawValue, forKey: PreferenceKey.recordingFrameRate.rawValue) } }
+    @Published var recordingBitrate: RecordingBitrate { didSet { store.defaults.set(recordingBitrate.rawValue, forKey: PreferenceKey.recordingBitrate.rawValue) } }
     @Published var language: AppLanguage {
         didSet {
             store.defaults.set(language.rawValue, forKey: PreferenceKey.language.rawValue)
@@ -96,6 +99,9 @@ final class AppSettings: ObservableObject {
         self.historyShortcut = preferences.shortcut(.historyShortcut, fallback: .historyDefault)
         self.fullScreenShortcut = preferences.shortcut(.fullScreenShortcut, fallback: .fullScreenDefault)
         self.recordingShortcut = preferences.shortcut(.recordingShortcut, fallback: .recordingDefault)
+        self.recordingResolution = preferences.defaults.string(forKey: PreferenceKey.recordingResolution.rawValue).flatMap(RecordingResolution.init(rawValue:)) ?? .native
+        self.recordingFrameRate = RecordingFrameRate(rawValue: preferences.defaults.integer(forKey: PreferenceKey.recordingFrameRate.rawValue)) ?? .fps60
+        self.recordingBitrate = preferences.defaults.string(forKey: PreferenceKey.recordingBitrate.rawValue).flatMap(RecordingBitrate.init(rawValue:)) ?? .balanced
         self.language = preferences.defaults.string(forKey: PreferenceKey.language.rawValue)
             .flatMap(AppLanguage.init(rawValue:)) ?? .english
         if preferences.defaults.object(forKey: PreferenceKey.lineWeight.rawValue) == nil {

@@ -6,15 +6,23 @@ struct RecordingGeometry: Equatable {
     let pixelWidth: Int
     let pixelHeight: Int
 
-    init?(screenFrame: CGRect, selection: CGRect, scale: CGFloat) {
+    init?(screenFrame: CGRect, selection: CGRect, scale: CGFloat, resolution: RecordingResolution = .native) {
         let values = [screenFrame.minX, screenFrame.minY, screenFrame.width, screenFrame.height,
                       selection.minX, selection.minY, selection.width, selection.height, scale]
         guard values.allSatisfy(\.isFinite), screenFrame.width > 0, screenFrame.height > 0,
               selection.width > 0, selection.height > 0, scale > 0 else { return nil }
         let area = selection.intersection(screenFrame)
         guard !area.isNull, area.width > 0, area.height > 0 else { return nil }
-        let width = (area.width * scale).rounded(.down)
-        let height = (area.height * scale).rounded(.down)
+        let originalWidth = area.width * scale
+        let originalHeight = area.height * scale
+        let factor: CGFloat
+        if let limit = resolution.maxSize {
+            let longSide = max(originalWidth, originalHeight)
+            let shortSide = min(originalWidth, originalHeight)
+            factor = min(1, limit.width / longSide, limit.height / shortSide)
+        } else { factor = 1 }
+        let width = (originalWidth * factor).rounded(.down)
+        let height = (originalHeight * factor).rounded(.down)
         // H.264 encoders require even dimensions. Reject unreasonably large input before conversion.
         guard width >= 2, height >= 2, width <= 16384, height <= 16384 else { return nil }
         pixelWidth = Int(width) & ~1
