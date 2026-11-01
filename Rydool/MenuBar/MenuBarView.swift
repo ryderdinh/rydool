@@ -89,7 +89,7 @@ struct MenuBarView: View {
         case .pendingSave: recordingTitle = L("Save recording…")
         }
         commands.append(MenuCommand(id: .record, symbol: recording.phase == .recording ? "stop.circle.fill" : "record.circle",
-                                    title: recordingTitle, warning: recording.phase == .recording, action: onRecording))
+                                    title: recordingTitle, trailing: .shortcut(settings.recordingShortcut.displayString), warning: recording.phase == .recording, action: onRecording))
         if previews.hiddenCount > 0 {
             commands.append(MenuCommand(id: .recent, symbol: "photo.stack", title: L("Recent Screenshots"),
                                         trailing: .detail("\(previews.hiddenCount)"), action: onRecentScreenshots))

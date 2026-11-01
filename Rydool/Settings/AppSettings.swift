@@ -26,7 +26,7 @@ enum AfterCaptureAction: String, CaseIterable, Identifiable {
 
 /// The persisted keys are retained for compatibility with existing installations.
 private enum PreferenceKey: String {
-    case shortcut, historyShortcut, fullScreenShortcut, lastSaveDirectory
+    case shortcut, historyShortcut, fullScreenShortcut, recordingShortcut, lastSaveDirectory
     case annotationColor, language
     case lineWeight = "annotationLineWeight"
 }
@@ -66,6 +66,7 @@ final class AppSettings: ObservableObject {
     @Published var shortcut: ShortcutBinding { didSet { store.save(shortcut, key: .shortcut) } }
     @Published var historyShortcut: ShortcutBinding { didSet { store.save(historyShortcut, key: .historyShortcut) } }
     @Published var fullScreenShortcut: ShortcutBinding { didSet { store.save(fullScreenShortcut, key: .fullScreenShortcut) } }
+    @Published var recordingShortcut: ShortcutBinding { didSet { store.save(recordingShortcut, key: .recordingShortcut) } }
     @Published var language: AppLanguage {
         didSet {
             store.defaults.set(language.rawValue, forKey: PreferenceKey.language.rawValue)
@@ -94,6 +95,7 @@ final class AppSettings: ObservableObject {
         self.shortcut = preferences.shortcut(.shortcut, fallback: .default)
         self.historyShortcut = preferences.shortcut(.historyShortcut, fallback: .historyDefault)
         self.fullScreenShortcut = preferences.shortcut(.fullScreenShortcut, fallback: .fullScreenDefault)
+        self.recordingShortcut = preferences.shortcut(.recordingShortcut, fallback: .recordingDefault)
         self.language = preferences.defaults.string(forKey: PreferenceKey.language.rawValue)
             .flatMap(AppLanguage.init(rawValue:)) ?? .english
         if preferences.defaults.object(forKey: PreferenceKey.lineWeight.rawValue) == nil {

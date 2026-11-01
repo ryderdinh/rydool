@@ -10,6 +10,7 @@ struct PreferencesView: View {
     @ObservedObject var history = ClipboardHistory.shared
     @ObservedObject var historyRecorder: ShortcutCaptureController
     @ObservedObject var fullScreenRecorder: ShortcutCaptureController
+    @ObservedObject var screenRecordingRecorder: ShortcutCaptureController
     @State private var excludedApplicationError: String?
     @State private var section: SettingsSection = .general
 
@@ -38,6 +39,7 @@ struct PreferencesView: View {
             recorder.cancel()
             historyRecorder.cancel()
             fullScreenRecorder.cancel()
+            screenRecordingRecorder.cancel()
         }
     }
 
@@ -151,6 +153,8 @@ struct PreferencesView: View {
                 ShortcutSetting(title: L("Capture Area"), symbol: "viewfinder", recorder: recorder, shortcut: settings.shortcut)
                 Divider()
                 ShortcutSetting(title: L("Capture Full Screen"), symbol: "rectangle.dashed", recorder: fullScreenRecorder, shortcut: settings.fullScreenShortcut)
+                Divider()
+                ShortcutSetting(title: L("Record Screen"), symbol: "record.circle", recorder: screenRecordingRecorder, shortcut: settings.recordingShortcut)
                 Divider()
                 ShortcutSetting(title: L("Clipboard History"), symbol: "clipboard", recorder: historyRecorder, shortcut: settings.historyShortcut)
             }
