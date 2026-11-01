@@ -9,6 +9,7 @@ let regionMode = CommandLine.arguments.contains("--region")
 let systemAudio = CommandLine.arguments.contains("--system-audio")
 let microphone = CommandLine.arguments.contains("--microphone")
 let cancelSave = CommandLine.arguments.contains("--cancel-save")
+let fpsMode = CommandLine.arguments.contains("--fps")
 var expectedRegionWidth: CGFloat = 0
 func fail(_ message: String) -> Never { fputs("FAIL: \(message)\n", stderr); exit(1) }
 func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
@@ -36,10 +37,10 @@ if find(bar, "Allow Screen Recording") != nil { fail("Screen Recording permissio
 guard let record = find(bar, "Record Screen") else { fail("Recording menu action missing") }
 press(record)
 guard let setup = wait({ windows().first { find($0, "Start recording") != nil } }) else { fail("Recording setup missing") }
-if systemAudio {
-    guard let toggle = find(setup, "System audio") else { fail("System audio toggle missing") }
-    press(toggle)
-}
+guard let audioToggle = find(setup, "System audio"),
+      let initialAudioValue = attribute(audioToggle, kAXValueAttribute as String) as? NSNumber,
+      initialAudioValue.boolValue else { fail("System audio should be enabled by default") }
+if !systemAudio { press(audioToggle) }
 if microphone {
     guard let toggle = find(setup, "Microphone") else { fail("Microphone toggle missing") }
     press(toggle)
@@ -136,6 +137,27 @@ Task {
             if systemAudio && maxSample <= 20 { fail("Recorded system audio is silent") }
         }
         guard let video = tracks.first, duration.seconds >= 2 else { fail("Saved recording has no video or is too short") }
+        if fpsMode {
+            let reader = try AVAssetReader(asset: asset)
+            let frames = AVAssetReaderTrackOutput(track: video, outputSettings: nil)
+            guard reader.canAdd(frames) else { fail("Cannot read video frames") }
+            reader.add(frames)
+            guard reader.startReading() else { fail("Cannot read video frame rate") }
+            var first = CMTime.invalid
+            var last = CMTime.invalid
+            var count = 0
+            while let sample = frames.copyNextSampleBuffer() {
+                let time = CMSampleBufferGetPresentationTimeStamp(sample)
+                if count == 0 { first = time }
+                last = time
+                count += 1
+            }
+            let elapsed = (last - first).seconds
+            guard elapsed > 0, count > 1 else { fail("Not enough frames to measure FPS") }
+            let fps = Double(count - 1) / elapsed
+            print("Measured FPS with moving content: \(String(format: "%.1f", fps))")
+            guard fps > 30 else { fail("Motion recording did not exceed 30 FPS on this system") }
+        }
         let size = try await video.load(.naturalSize)
         if regionMode {
             guard abs(size.width - expectedRegionWidth) < 8 else { fail("Recorded area has unexpected width: \(size.width), expected \(expectedRegionWidth)") }

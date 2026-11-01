@@ -37,8 +37,9 @@ with tempfile.TemporaryDirectory(prefix="rydool-real-recording-") as directory:
                 if line.strip().endswith(str(app))}
 
     backdrop = None
-    if "--region" in sys.argv:
-        backdrop = subprocess.Popen(["swift", str(root / "Tests/UI/RecordingBackdrop.swift")],
+    if "--region" in sys.argv or "--fps" in sys.argv:
+        backdropArgs = ["--animate"] if "--fps" in sys.argv else []
+        backdrop = subprocess.Popen(["swift", str(root / "Tests/UI/RecordingBackdrop.swift")] + backdropArgs,
                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(2)
         if backdrop.poll() is not None:

@@ -43,7 +43,7 @@ final class ScreenRecordingStream: NSObject, SCStreamOutput, SCStreamDelegate, A
         config.sourceRect = geometry.sourceRect
         config.width = geometry.pixelWidth
         config.height = geometry.pixelHeight
-        config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
+        config.minimumFrameInterval = CMTime(value: 1, timescale: 60)
         config.queueDepth = 5
         config.showsCursor = true
         config.capturesAudio = systemAudio

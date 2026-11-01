@@ -36,7 +36,7 @@ private struct RecordingSetupView: View {
     @ObservedObject private var settings = AppSettings.shared
     @State private var selectedDisplay: CGDirectDisplayID = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) })?.displayID ?? NSScreen.main?.displayID ?? 0
     @State private var area = false
-    @State private var systemAudio = false
+    @State private var systemAudio = true
     @State private var microphone = false
     let onCancel: () -> Void
     let onStart: (RecordingOptions) -> Void

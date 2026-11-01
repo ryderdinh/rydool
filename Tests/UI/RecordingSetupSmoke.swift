@@ -26,6 +26,15 @@ guard let window = windows().first(where: { find($0, "Start recording") != nil }
 for name in ["Display", "Full screen", "Selected area", "System audio", "Microphone", "Cancel"] {
     guard find(window, name) != nil else { fail("Missing \(name)") }
 }
+guard let audio = find(window, "System audio"),
+      let audioValue = attribute(audio, kAXValueAttribute as String) as? NSNumber,
+      audioValue.boolValue else { fail("System audio should be enabled by default") }
+press(audio)
+guard let changed = attribute(audio, kAXValueAttribute as String) as? NSNumber,
+      !changed.boolValue else { fail("System audio cannot be disabled") }
+guard let microphone = find(window, "Microphone"),
+      let microphoneValue = attribute(microphone, kAXValueAttribute as String) as? NSNumber,
+      !microphoneValue.boolValue else { fail("Microphone should be disabled by default") }
 guard let area = find(window, "Selected area") else { fail("Area option missing") }
 press(area); Thread.sleep(forTimeInterval: 0.2)
 guard let select = find(window, "Select area") else { fail("Area selection button missing") }
