@@ -8,6 +8,7 @@ let directory = URL(fileURLWithPath: CommandLine.arguments[2], isDirectory: true
 let regionMode = CommandLine.arguments.contains("--region")
 let systemAudio = CommandLine.arguments.contains("--system-audio")
 let microphone = CommandLine.arguments.contains("--microphone")
+let cancelSave = CommandLine.arguments.contains("--cancel-save")
 var expectedRegionWidth: CGFloat = 0
 func fail(_ message: String) -> Never { fputs("FAIL: \(message)\n", stderr); exit(1) }
 func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
@@ -81,8 +82,19 @@ if systemAudio {
 }
 Thread.sleep(forTimeInterval: 3)
 press(stop)
-guard let save = wait({ windows().compactMap { find($0, "Save", role: "AXButton") }.first(where: { (attribute($0, kAXEnabledAttribute as String) as? Bool) == true }) }) else { fail("Enabled save button missing after recording") }
-press(save)
+func enabledSave() -> AXUIElement? {
+    windows().compactMap { find($0, "Save", role: "AXButton") }.first(where: { (attribute($0, kAXEnabledAttribute as String) as? Bool) == true })
+}
+guard let firstSave = wait({ enabledSave() }) else { fail("Enabled save button missing after recording") }
+if cancelSave {
+    guard let cancel = windows().compactMap({ find($0, "Cancel", role: "AXButton") }).first else { fail("Save cancel button missing") }
+    press(cancel); Thread.sleep(forTimeInterval: 0.4)
+    press(status); Thread.sleep(forTimeInterval: 0.3)
+    guard let pending = find(bar, "Save recording") else { fail("Recording was not retained after canceling save") }
+    press(pending)
+    guard let saveAgain = wait({ enabledSave() }) else { fail("Cannot reopen save panel") }
+    press(saveAgain)
+} else { press(firstSave) }
 var file: URL?
 for _ in 0..<40 {
     file = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil).first { $0.pathExtension == "mp4" }
