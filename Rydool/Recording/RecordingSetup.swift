@@ -39,8 +39,6 @@ private struct RecordingSetupView: View {
     @ObservedObject private var settings = AppSettings.shared
     @State private var selectedDisplay: CGDirectDisplayID = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) })?.displayID ?? NSScreen.main?.displayID ?? 0
     @State private var area = false
-    @State private var systemAudio = true
-    @State private var microphone = false
     let onCancel: () -> Void
     let onStart: (RecordingOptions) -> Void
 
@@ -118,12 +116,12 @@ private struct RecordingSetupView: View {
                 card {
                     HStack(spacing: 10) {
                         Image(systemName: "speaker.wave.2").foregroundStyle(Color.accentColor).frame(width: 22)
-                        Toggle(L("System audio"), isOn: $systemAudio).toggleStyle(.switch).controlSize(.small).accessibilityLabel(L("System audio"))
+                        Toggle(L("System audio"), isOn: $settings.recordingSystemAudio).toggleStyle(.switch).controlSize(.small).accessibilityLabel(L("System audio"))
                     }
                     Divider()
                     HStack(spacing: 10) {
                         Image(systemName: "mic").foregroundStyle(Color.accentColor).frame(width: 22)
-                        Toggle(L("Microphone"), isOn: $microphone).toggleStyle(.switch).controlSize(.small).accessibilityLabel(L("Microphone"))
+                        Toggle(L("Microphone"), isOn: $settings.recordingMicrophone).toggleStyle(.switch).controlSize(.small).accessibilityLabel(L("Microphone"))
                     }
                 }
             }
@@ -134,7 +132,7 @@ private struct RecordingSetupView: View {
                 Button(L("Cancel"), action: onCancel).keyboardShortcut(.cancelAction)
                 Button(area ? L("Select area") : L("Start recording")) {
                     guard let screen = NSScreen.screens.first(where: { $0.displayID == selectedDisplay }) else { return }
-                    onStart(RecordingOptions(screen: screen, area: area, systemAudio: systemAudio, microphone: microphone,
+                    onStart(RecordingOptions(screen: screen, area: area, systemAudio: settings.recordingSystemAudio, microphone: settings.recordingMicrophone,
                                              resolution: settings.recordingResolution, frameRate: settings.recordingFrameRate,
                                              bitrate: settings.recordingBitrate))
                 }.buttonStyle(.borderedProminent).tint(.red).keyboardShortcut(.defaultAction)

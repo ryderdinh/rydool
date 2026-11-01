@@ -23,6 +23,7 @@ struct PreferencesView: View {
                     pageHeader
                     switch section {
                     case .general: generalSettings
+                    case .recording: recordingSettings
                     case .shortcuts: shortcutSettings
                     case .clipboard: clipboardSettings
                     }
@@ -146,6 +147,66 @@ struct PreferencesView: View {
         }
     }
 
+    private var recordingSettings: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 10) {
+                sectionHeading(L("VIDEO QUALITY"))
+                SettingsCard {
+                    HStack(spacing: 12) {
+                        SettingsSymbol(symbol: "rectangle.on.rectangle", color: .blue)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(L("Resolution")).fontWeight(.medium)
+                            Text(L("Never enlarges the selected area"))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 8)
+                        Picker(L("Resolution"), selection: $settings.recordingResolution) {
+                            ForEach(RecordingResolution.allCases) { Text($0.title).tag($0) }
+                        }.labelsHidden().frame(width: 130)
+                    }
+                    Divider()
+                    HStack(spacing: 12) {
+                        SettingsSymbol(symbol: "film", color: .blue)
+                        Text(L("Frame rate")).fontWeight(.medium)
+                        Spacer(minLength: 8)
+                        Picker(L("Frame rate"), selection: $settings.recordingFrameRate) {
+                            ForEach(RecordingFrameRate.allCases) { Text($0.title).tag($0) }
+                        }.pickerStyle(.segmented).labelsHidden().frame(width: 160)
+                    }
+                    Divider()
+                    HStack(spacing: 12) {
+                        SettingsSymbol(symbol: "slider.horizontal.3", color: .blue)
+                        Text(L("Quality")).fontWeight(.medium)
+                        Spacer(minLength: 8)
+                        Picker(L("Quality"), selection: $settings.recordingBitrate) {
+                            ForEach(RecordingBitrate.allCases) { Text($0.title).tag($0) }
+                        }.labelsHidden().frame(width: 150)
+                    }
+                }
+                Text(L("Higher quality and frame rates may create larger files."))
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                sectionHeading(L("AUDIO"))
+                SettingsCard {
+                    HStack(spacing: 12) {
+                        SettingsSymbol(symbol: "speaker.wave.2", color: .blue)
+                        Toggle(L("System audio"), isOn: $settings.recordingSystemAudio)
+                            .toggleStyle(.switch).controlSize(.small).accessibilityLabel(L("System audio"))
+                    }
+                    Divider()
+                    HStack(spacing: 12) {
+                        SettingsSymbol(symbol: "mic", color: .blue)
+                        Toggle(L("Microphone"), isOn: $settings.recordingMicrophone)
+                            .toggleStyle(.switch).controlSize(.small).accessibilityLabel(L("Microphone"))
+                    }
+                }
+                Text(L("These choices are also available before each recording."))
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
     private var shortcutSettings: some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionHeading(L("GLOBAL SHORTCUTS"))
@@ -243,11 +304,12 @@ struct PreferencesView: View {
 }
 
 private enum SettingsSection: String, CaseIterable, Identifiable {
-    case general, shortcuts, clipboard
+    case general, recording, shortcuts, clipboard
     var id: String { rawValue }
     var title: String {
         switch self {
         case .general: L("General")
+        case .recording: L("Recording")
         case .shortcuts: L("Shortcuts")
         case .clipboard: L("Clipboard")
         }
@@ -255,6 +317,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .general: "slider.horizontal.3"
+        case .recording: "record.circle"
         case .shortcuts: "keyboard"
         case .clipboard: "clipboard"
         }
@@ -262,6 +325,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
     var subtitle: String {
         switch self {
         case .general: L("Customize how Rydool works on your Mac.")
+        case .recording: L("Choose the default quality and audio for screen recordings.")
         case .shortcuts: L("Choose shortcuts for quick access to your tools.")
         case .clipboard: L("Manage clipboard history and excluded apps.")
         }

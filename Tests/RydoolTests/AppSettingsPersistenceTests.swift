@@ -34,13 +34,19 @@ final class AppSettingsPersistenceTests: XCTestCase {
         XCTAssertEqual(settings.recordingResolution, .native)
         XCTAssertEqual(settings.recordingFrameRate, .fps60)
         XCTAssertEqual(settings.recordingBitrate, .balanced)
+        XCTAssertTrue(settings.recordingSystemAudio)
+        XCTAssertFalse(settings.recordingMicrophone)
         settings.recordingResolution = .hd1080
         settings.recordingFrameRate = .fps30
         settings.recordingBitrate = .high
+        settings.recordingSystemAudio = false
+        settings.recordingMicrophone = true
         let restored = AppSettings(defaults: defaults)
         XCTAssertEqual(restored.recordingResolution, .hd1080)
         XCTAssertEqual(restored.recordingFrameRate, .fps30)
         XCTAssertEqual(restored.recordingBitrate, .high)
+        XCTAssertFalse(restored.recordingSystemAudio)
+        XCTAssertTrue(restored.recordingMicrophone)
     }
 
     func testInvalidStoredShortcutFallsBackToDefault() throws {
