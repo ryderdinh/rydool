@@ -31,6 +31,12 @@ with tempfile.TemporaryDirectory(prefix="rydool-real-recording-") as directory:
     env.update(RYDOOL_TEST_DATA_DIR=directory, RYDOOL_TEST_PASTEBOARD=suite, RYDOOL_TEST_DEFAULTS=suite)
     # Launch the bundle through Launch Services so macOS attributes capture permission to Rydool.
     keys = ("RYDOOL_TEST_DATA_DIR", "RYDOOL_TEST_PASTEBOARD", "RYDOOL_TEST_DEFAULTS")
+    def running_pids():
+        listing = subprocess.check_output(["ps", "-axo", "pid=,command="], text=True)
+        return {int(line.strip().split(None, 1)[0]) for line in listing.splitlines()
+                if line.strip().endswith(str(app))}
+
+    previous_pids = running_pids()
     args = ["open", "-n"]
     for key in keys:
         args.extend(["--env", f"{key}={env[key]}"])
@@ -38,10 +44,9 @@ with tempfile.TemporaryDirectory(prefix="rydool-real-recording-") as directory:
     pid = None
     try:
         for _ in range(30):
-            listing = subprocess.check_output(["ps", "-axo", "pid=,command="], text=True)
-            matches = [line.strip().split(None, 1) for line in listing.splitlines() if line.strip().endswith(str(app))]
+            matches = running_pids() - previous_pids
             if matches:
-                pid = int(matches[-1][0])
+                pid = matches.pop()
                 break
             time.sleep(0.2)
         if pid is None:
