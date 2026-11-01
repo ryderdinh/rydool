@@ -68,6 +68,14 @@ final class RecordingWriter: @unchecked Sendable {
         }
     }
 
+    func cancel() {
+        queue.async { [self] in
+            guard !stopped else { return }
+            stopped = true
+            writer.cancelWriting()
+        }
+    }
+
     func finish() async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.async { [self] in
