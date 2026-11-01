@@ -22,6 +22,7 @@ final class RecordingWriter: @unchecked Sendable {
     private let microphone: AVAssetWriterInput?
     private var startedAt: CMTime?
     private var stopped = false
+    private var firstError: String?
 
     init(url: URL, width: Int, height: Int, systemAudio: Bool, microphone: Bool) throws {
         writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
@@ -64,7 +65,9 @@ final class RecordingWriter: @unchecked Sendable {
             case .systemAudio: input = systemAudio
             case .microphone: input = microphone
             }
-            if let input, input.isReadyForMoreMediaData { _ = input.append(sample) }
+            if let input, input.isReadyForMoreMediaData, !input.append(sample), firstError == nil {
+                firstError = writer.error?.localizedDescription ?? "Cannot write recording data."
+            }
         }
     }
 
@@ -84,6 +87,15 @@ final class RecordingWriter: @unchecked Sendable {
                     return
                 }
                 stopped = true
+                if let firstError {
+                    writer.cancelWriting()
+                    continuation.resume(throwing: WriterError.failed(firstError))
+                    return
+                }
+                if writer.status == .failed {
+                    continuation.resume(throwing: WriterError.failed(writer.error?.localizedDescription ?? "Cannot write recording data."))
+                    return
+                }
                 guard startedAt != nil else {
                     writer.cancelWriting()
                     continuation.resume(throwing: WriterError.noVideo)
