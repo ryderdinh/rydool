@@ -55,6 +55,7 @@ final class MenuBarController: NSObject {
                 guard let self else { return }
                 let active = phase == .recording
                 self.item.length = active ? NSStatusItem.variableLength : NSStatusItem.squareLength
+                self.item.button?.imagePosition = active ? .imageLeading : .imageOnly
                 self.item.button?.attributedTitle = NSAttributedString(string: active ? " ●" : "", attributes: [.foregroundColor: NSColor.systemRed])
             }
         }

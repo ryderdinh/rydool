@@ -152,7 +152,10 @@ final class RecordingCoordinator: ObservableObject {
         NSApp.activate(ignoringOtherApps: true)
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.mpeg4Movie]
-        panel.nameFieldStringValue = "Rydool \(Date().formatted(date: .numeric, time: .shortened).replacingOccurrences(of: "/", with: "-")) .mp4"
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd HH.mm.ss"
+        panel.nameFieldStringValue = "Rydool \(formatter.string(from: Date())).mp4"
         panel.directoryURL = AppSettings.shared.lastSaveDirectory
         guard panel.runModal() == .OK, let destination = panel.url else { return }
         do {
