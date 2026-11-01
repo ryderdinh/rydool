@@ -118,7 +118,7 @@ guard
       findText(preview, "Save") != nil,
       findText(preview, "Close preview") != nil else { fail("Screenshot preview or its actions are missing") }
 guard let initialPreviewFrame = frame(preview), initialPreviewFrame.width < 200, initialPreviewFrame.height < 160 else { fail("Screenshot preview is too large") }
-guard !windows().contains(where: { findText($0, "arrow.up.right") != nil }) else { fail("Editor appeared before selecting preview") }
+guard !windows().contains(where: { findText($0, "Arrow") != nil }) else { fail("Editor appeared before selecting preview") }
 guard let originalPNG = board.data(forType: .png), let originalBitmap = NSBitmapImageRep(data: originalPNG) else { fail("Capture did not automatically copy PNG") }
 if regionMode {
     guard (214...218).contains(originalBitmap.pixelsWide), (142...146).contains(originalBitmap.pixelsHigh) else { fail("Automatically copied region has wrong dimensions") }
@@ -170,7 +170,7 @@ if previewCopyMode {
     hoverPreview(preview)
     guard let previewCopy = findText(preview, "Copy") else { fail("Preview copy action missing") }
     click(previewCopy); Thread.sleep(forTimeInterval: 0.6)
-    guard !windows().contains(where: { findText($0, "arrow.up.right") != nil }) else { fail("Copy also opened the editor") }
+    guard !windows().contains(where: { findText($0, "Arrow") != nil }) else { fail("Copy also opened the editor") }
     guard let png = board.data(forType: .png), let bitmap = NSBitmapImageRep(data: png) else { fail("Preview did not copy the screenshot") }
     if regionMode {
         guard (214...218).contains(bitmap.pixelsWide), (142...146).contains(bitmap.pixelsHigh) else { fail("Preview copied the wrong region") }
@@ -190,7 +190,7 @@ guard let previewFrame = frame(preview) else { fail("Preview frame missing") }
 let blankPoint = CGPoint(x: previewFrame.midX, y: previewFrame.midY)
 mouse(.mouseMoved, blankPoint); mouse(.leftMouseDown, blankPoint); mouse(.leftMouseUp, blankPoint)
 Thread.sleep(forTimeInterval: 0.5)
-guard windows().contains(where: { findText($0, "arrow.up.right") != nil }) else { fail("Editor did not open from preview") }
+guard windows().contains(where: { findText($0, "Arrow") != nil }) else { fail("Editor did not open from preview") }
 for _ in 0..<10 where NSWorkspace.shared.frontmostApplication?.processIdentifier != pid_t(Int32(CommandLine.arguments[1])!) { Thread.sleep(forTimeInterval: 0.1) }
 guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid_t(Int32(CommandLine.arguments[1])!) else { fail("Editor did not become foreground") }
 guard let escapeDown = CGEvent(keyboardEventSource: nil, virtualKey: 53, keyDown: true),
@@ -201,16 +201,49 @@ Thread.sleep(forTimeInterval: 0.4)
 guard let restoredPreview = windows().first(where: { findText($0, "Edit screenshot") != nil }),
       let editAgain = findText(restoredPreview, "Edit screenshot") else { fail("Canceling the editor lost the preview") }
 press(editAgain); Thread.sleep(forTimeInterval: 0.5)
-guard let firstEditor = windows().first(where: { findText($0, "arrow.up.right") != nil }),
+guard let firstEditor = windows().first(where: { findText($0, "Arrow") != nil }),
       let rawClose = attribute(firstEditor, kAXCloseButtonAttribute as String), CFGetTypeID(rawClose) == AXUIElementGetTypeID() else { fail("Editor window close button missing") }
 press(rawClose as! AXUIElement); Thread.sleep(forTimeInterval: 0.4)
 guard let previewAfterClose = windows().first(where: { findText($0, "Edit screenshot") != nil }),
       let reopen = findText(previewAfterClose, "Edit screenshot") else { fail("Closing the editor lost the preview") }
 press(reopen); Thread.sleep(forTimeInterval: 0.5)
-guard let overlay = windows().first(where: { findText($0, "arrow.up.right") != nil }), let arrow = findText(overlay, "arrow.up.right"), let undo = findText(overlay, "Undo") else { fail("Capture toolbar missing") }
+guard let overlay = windows().first(where: { findText($0, "Arrow") != nil }), let arrow = findText(overlay, "Arrow"), let undo = findText(overlay, "Undo") else { fail("Capture toolbar missing") }
 guard (attribute(overlay, kAXTitleAttribute as String) as? String ?? "").contains("Rydool — Screenshot"),
       let windowFrame = frame(overlay), windowFrame.width < display.width, windowFrame.height < display.height,
       let imageCanvas = findText(overlay, "Screenshot canvas"), let canvasFrame = frame(imageCanvas) else { fail("Editor is not a separate image window") }
+guard let zoomIn = findText(overlay, "Zoom in"), let zoomOut = findText(overlay, "Zoom out"),
+      let fit = findText(overlay, "Fit image to window") ?? findText(overlay, "Fit") else { fail("Zoom controls missing") }
+press(zoomIn); Thread.sleep(forTimeInterval: 0.3)
+guard let zoomedFrame = frame(imageCanvas), zoomedFrame.width > canvasFrame.width * 1.1 else { fail("Zoom in did not enlarge the canvas") }
+press(zoomOut); Thread.sleep(forTimeInterval: 0.3)
+guard let reducedFrame = frame(imageCanvas), abs(reducedFrame.width - canvasFrame.width) < 2 else { fail("Zoom out did not restore the scale") }
+press(fit); Thread.sleep(forTimeInterval: 0.3)
+guard let fittedFrame = frame(imageCanvas), abs(fittedFrame.width - canvasFrame.width) < 2 else { fail("Fit did not restore the initial scale (initial: \(canvasFrame), current: \(String(describing: frame(imageCanvas))))") }
+guard let actualSize = findText(overlay, "Actual size") else { fail("Actual size control missing") }
+press(actualSize); Thread.sleep(forTimeInterval: 0.3)
+let expectedWidth = display.width * (regionMode ? 0.6 : 1)
+guard let actualFrame = frame(imageCanvas), abs(actualFrame.width - expectedWidth) < 10 else { fail("Actual size did not restore 100%") }
+press(fit); Thread.sleep(forTimeInterval: 0.3)
+var smallerSize = CGSize(width: windowFrame.width - 100, height: windowFrame.height - 100)
+guard let smallerValue = AXValueCreate(.cgSize, &smallerSize),
+      AXUIElementSetAttributeValue(overlay, kAXSizeAttribute as CFString, smallerValue) == .success else { fail("Cannot resize editor") }
+Thread.sleep(forTimeInterval: 0.3)
+guard let resizedFrame = frame(imageCanvas), resizedFrame.width < fittedFrame.width - 5 else { fail("Fit did not update after resizing the editor") }
+var minimumSize = CGSize(width: 560, height: 340)
+guard let minimumValue = AXValueCreate(.cgSize, &minimumSize),
+      AXUIElementSetAttributeValue(overlay, kAXSizeAttribute as CFString, minimumValue) == .success else { fail("Cannot minimize editor") }
+Thread.sleep(forTimeInterval: 0.3)
+guard let compactWindow = frame(overlay) else { fail("Compact editor frame missing") }
+for name in ["Pen", "Arrow", "Rectangle", "Text", "Undo", "Zoom out", "Zoom in", "Fit", "Save As", "Copy"] {
+    guard let control = findText(overlay, name), let controlFrame = frame(control),
+          compactWindow.contains(controlFrame) else { fail("\(name) is missing or outside the compact editor") }
+}
+var originalSize = windowFrame.size
+guard let originalValue = AXValueCreate(.cgSize, &originalSize),
+      AXUIElementSetAttributeValue(overlay, kAXSizeAttribute as CFString, originalValue) == .success else { fail("Cannot restore editor size") }
+Thread.sleep(forTimeInterval: 0.3)
+guard let restoredFrame = frame(imageCanvas), abs(restoredFrame.width - canvasFrame.width) < 2 else { fail("Fit did not restore after resizing") }
+print("PASS: zoom, actual size, fit and window resize update the editor canvas")
 let from = CGPoint(x: canvasFrame.minX + canvasFrame.width * 0.2, y: canvasFrame.minY + canvasFrame.height * 0.3)
 let to = CGPoint(x: canvasFrame.minX + canvasFrame.width * 0.7, y: canvasFrame.minY + canvasFrame.height * 0.5)
 press(arrow)
@@ -257,7 +290,7 @@ mouse(.leftMouseDown, from); mouse(.leftMouseDragged, to); mouse(.leftMouseUp, t
 if let oldMouse { mouse(.mouseMoved, oldMouse) }
 Thread.sleep(forTimeInterval: 0.3)
 guard (attribute(undo, kAXEnabledAttribute as String) as? Bool ?? false) else { fail("Cannot draw after undo") }
-guard let textTool = findText(overlay, "Text Formatting") else { fail("Text tool missing") }
+guard let textTool = findText(overlay, "Text") else { fail("Text tool missing") }
 press(textTool)
 let textPoint = CGPoint(x: canvasFrame.minX + canvasFrame.width * 0.35, y: canvasFrame.minY + canvasFrame.height * 0.65)
 mouse(.leftMouseDown, textPoint); mouse(.leftMouseUp, textPoint)
@@ -267,7 +300,7 @@ guard let field = findRole(overlay, "AXTextField") else { fail("Text editor miss
 let sampleText = "Tiếng Việt\nDòng hai"
 guard AXUIElementSetAttributeValue(field, kAXValueAttribute as CFString, sampleText as CFTypeRef) == .success,
       (attribute(field, kAXValueAttribute as String) as? String) == sampleText else { fail("Cannot enter Unicode text") }
-guard let save = findText(overlay, "Download") else { fail("Save action missing") }
+guard let save = findText(overlay, "Save As") else { fail("Save action missing") }
 // AXPress may wait for the nested save dialog, so dismiss it from this thread.
 DispatchQueue.global().async { _ = AXUIElementPerformAction(save, kAXPressAction as CFString) }
 Thread.sleep(forTimeInterval: 1)
@@ -275,7 +308,7 @@ guard let cancel = windows().compactMap({ findText($0, "Cancel") }).first else {
 press(cancel); Thread.sleep(forTimeInterval: 0.5)
 guard let returnedOverlay = windows().first(where: { findText($0, "Copy") != nil }) else { fail("Editor did not return after cancel") }
 if saveMode {
-    guard let saveAgain = findText(returnedOverlay, "Download") else { fail("Save action missing after cancellation") }
+    guard let saveAgain = findText(returnedOverlay, "Save As") else { fail("Save action missing after cancellation") }
     DispatchQueue.global().async { _ = AXUIElementPerformAction(saveAgain, kAXPressAction as CFString) }
     Thread.sleep(forTimeInterval: 0.8)
     func findSaveButton(_ element: AXUIElement) -> AXUIElement? {
