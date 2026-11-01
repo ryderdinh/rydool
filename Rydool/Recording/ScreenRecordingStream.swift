@@ -63,7 +63,7 @@ final class ScreenRecordingStream: NSObject, SCStreamOutput, SCStreamDelegate, A
             micSession = session
         } else { micSession = nil }
         let writer = try RecordingWriter(url: outputURL, width: geometry.pixelWidth, height: geometry.pixelHeight,
-                                         systemAudio: systemAudio, microphone: microphone)
+                                         systemAudio: systemAudio, microphone: microphone, onFailure: onFailure)
         let recording = ScreenRecordingStream(writer: writer, outputURL: outputURL, combineAudio: systemAudio && microphone, filter: filter, configuration: config, microphone: micSession, onFailure: onFailure)
         let stream = recording.stream!
         do {

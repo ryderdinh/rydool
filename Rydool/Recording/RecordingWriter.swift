@@ -17,6 +17,7 @@ final class RecordingWriter: @unchecked Sendable {
     enum Track { case video, systemAudio, microphone }
     private let queue = DispatchQueue(label: "com.rydool.recording.writer")
     private let videoSlots = DispatchSemaphore(value: 5)
+    private let onFailure: (Error) -> Void
     private let writer: AVAssetWriter
     private let video: AVAssetWriterInput
     private let systemAudio: AVAssetWriterInput?
@@ -24,8 +25,10 @@ final class RecordingWriter: @unchecked Sendable {
     private var startedAt: CMTime?
     private var stopped = false
     private var firstError: String?
+    private var didReportFailure = false
 
-    init(url: URL, width: Int, height: Int, systemAudio: Bool, microphone: Bool) throws {
+    init(url: URL, width: Int, height: Int, systemAudio: Bool, microphone: Bool, onFailure: @escaping (Error) -> Void = { _ in }) throws {
+        self.onFailure = onFailure
         writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
         video = AVAssetWriterInput(mediaType: .video, outputSettings: [
             AVVideoCodecKey: AVVideoCodecType.h264,
@@ -55,7 +58,11 @@ final class RecordingWriter: @unchecked Sendable {
         if isVideo && videoSlots.wait(timeout: .now()) != .success { return }
         queue.async { [self] in
             defer { if isVideo { videoSlots.signal() } }
-            guard !stopped, CMSampleBufferDataIsReady(sample), writer.status == .writing else { return }
+            guard !stopped, CMSampleBufferDataIsReady(sample) else { return }
+            guard writer.status == .writing else {
+                if writer.status == .failed { reportFailure(writer.error?.localizedDescription ?? L("Cannot write recording data.")) }
+                return
+            }
             let timestamp = CMSampleBufferGetPresentationTimeStamp(sample)
             guard timestamp.isValid, timestamp.isNumeric else { return }
             if startedAt == nil {
@@ -71,9 +78,17 @@ final class RecordingWriter: @unchecked Sendable {
             case .microphone: input = microphone
             }
             if let input, input.isReadyForMoreMediaData, !input.append(sample), firstError == nil {
-                firstError = writer.error?.localizedDescription ?? L("Cannot write recording data.")
+                reportFailure(writer.error?.localizedDescription ?? L("Cannot write recording data."))
             }
         }
+    }
+
+    private func reportFailure(_ message: String) {
+        guard !didReportFailure else { return }
+        didReportFailure = true
+        firstError = message
+        let error = WriterError.failed(message)
+        DispatchQueue.main.async { [onFailure] in onFailure(error) }
     }
 
     func cancel() {
