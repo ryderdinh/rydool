@@ -16,6 +16,7 @@ final class RecordingWriter: @unchecked Sendable {
 
     enum Track { case video, systemAudio, microphone }
     private let queue = DispatchQueue(label: "com.rydool.recording.writer")
+    private let videoSlots = DispatchSemaphore(value: 5)
     private let writer: AVAssetWriter
     private let video: AVAssetWriterInput
     private let systemAudio: AVAssetWriterInput?
@@ -49,7 +50,11 @@ final class RecordingWriter: @unchecked Sendable {
     }
 
     func append(_ sample: CMSampleBuffer, track: Track) {
+        let isVideo = track == .video
+        // Captured frames can be large; drop excess frames instead of growing memory without bound.
+        if isVideo && videoSlots.wait(timeout: .now()) != .success { return }
         queue.async { [self] in
+            defer { if isVideo { videoSlots.signal() } }
             guard !stopped, CMSampleBufferDataIsReady(sample), writer.status == .writing else { return }
             let timestamp = CMSampleBufferGetPresentationTimeStamp(sample)
             guard timestamp.isValid, timestamp.isNumeric else { return }

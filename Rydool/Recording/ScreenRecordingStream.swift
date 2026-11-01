@@ -73,27 +73,29 @@ final class ScreenRecordingStream: NSObject, SCStreamOutput, SCStreamDelegate, A
                 output.setSampleBufferDelegate(recording, queue: recording.sampleQueue)
             }
             try await stream.startCapture()
-            await recording.setMicrophoneRunning(true)
+            guard await recording.setMicrophoneRunning(true) else { throw StreamError.microphoneUnavailable }
             return recording
         } catch {
+            try? await stream.stopCapture()
             writer.cancel()
             throw error
         }
     }
 
     func stop() async throws {
-        await setMicrophoneRunning(false)
+        _ = await setMicrophoneRunning(false)
         // A stream may already have stopped after an interruption; still finalize the frames received.
         try? await stream.stopCapture()
         try await writer.finish()
         if combineAudio { try await RecordingAudioMixer.mixIfNeeded(at: outputURL) }
     }
 
-    private func setMicrophoneRunning(_ running: Bool) async {
+    private func setMicrophoneRunning(_ running: Bool) async -> Bool {
         await withCheckedContinuation { continuation in
             microphoneQueue.async { [self] in
-                if running { microphone?.startRunning() } else { microphone?.stopRunning() }
-                continuation.resume()
+                guard let microphone else { continuation.resume(returning: true); return }
+                if running { microphone.startRunning() } else { microphone.stopRunning() }
+                continuation.resume(returning: !running || microphone.isRunning)
             }
         }
     }
