@@ -84,7 +84,7 @@ final class RecordingWriter: @unchecked Sendable {
         }
     }
 
-    func finish() async throws {
+    func finish(endTime: CMTime? = nil) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.async { [self] in
                 guard !stopped else {
@@ -105,6 +105,9 @@ final class RecordingWriter: @unchecked Sendable {
                     writer.cancelWriting()
                     continuation.resume(throwing: WriterError.noVideo)
                     return
+                }
+                if let endTime, let startedAt, endTime.isNumeric, endTime > startedAt {
+                    writer.endSession(atSourceTime: endTime)
                 }
                 [video, systemAudio, microphone].compactMap { $0 }.forEach { $0.markAsFinished() }
                 writer.finishWriting { [writer] in

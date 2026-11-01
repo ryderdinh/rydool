@@ -114,6 +114,17 @@ final class RecordingWriterTests: XCTestCase {
         XCTAssertGreaterThan(duration.seconds, 0)
     }
 
+    func testStaticScreenRetainsTheFullRecordingDuration() async throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let writer = try RecordingWriter(url: url, width: 64, height: 48, systemAudio: false, microphone: false)
+        writer.append(try frame(at: 0), track: .video)
+        try await writer.finish(endTime: CMTime(seconds: 3, preferredTimescale: 600))
+        let asset = AVURLAsset(url: url)
+        let duration = try await asset.load(.duration)
+        XCTAssertGreaterThanOrEqual(duration.seconds, 2.9)
+    }
+
     func testFinishWithoutVideoFails() async throws {
         let url = temporaryURL()
         defer { try? FileManager.default.removeItem(at: url) }

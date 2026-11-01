@@ -83,10 +83,11 @@ final class ScreenRecordingStream: NSObject, SCStreamOutput, SCStreamDelegate, A
     }
 
     func stop() async throws {
+        let endTime = CMClockGetTime(CMClockGetHostTimeClock())
         _ = await setMicrophoneRunning(false)
         // A stream may already have stopped after an interruption; still finalize the frames received.
         try? await stream.stopCapture()
-        try await writer.finish()
+        try await writer.finish(endTime: endTime)
         if combineAudio { try await RecordingAudioMixer.mixIfNeeded(at: outputURL) }
     }
 
