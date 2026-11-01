@@ -1,0 +1,197 @@
+import Foundation
+
+enum AppLanguage: String, CaseIterable, Identifiable {
+    case english = "en"
+    case vietnamese = "vi"
+    case simplifiedChinese = "zh-Hans"
+
+    var id: String { rawValue }
+    var name: String {
+        switch self {
+        case .english: "English"
+        case .vietnamese: "Tiếng Việt"
+        case .simplifiedChinese: "简体中文"
+        }
+    }
+}
+
+extension Notification.Name {
+    static let rydoolLanguageDidChange = Notification.Name("Rydool.languageDidChange")
+}
+
+/// English keys are also the fallback, so a missing translation never shows an opaque key.
+enum Localization {
+    private static let translations: [(String, String, String)] = [
+        ("Settings", "Cài đặt", "设置"),
+        ("Settings…", "Cài đặt…", "设置…"),
+        ("General", "Chung", "通用"),
+        ("Shortcuts", "Phím tắt", "快捷键"),
+        ("Clipboard", "Clipboard", "剪贴板"),
+        ("Language", "Ngôn ngữ", "语言"),
+        ("Choose the language used by Rydool.", "Chọn ngôn ngữ hiển thị của Rydool.", "选择 Rydool 的显示语言。"),
+        ("LANGUAGE", "NGÔN NGỮ", "语言"),
+        ("STARTUP", "KHỞI ĐỘNG", "启动"),
+        ("Launch Rydool at login", "Mở Rydool khi đăng nhập", "登录时启动 Rydool"),
+        ("Keep Rydool ready in the menu bar when you sign in.", "Rydool sẵn sàng trên thanh menu khi bạn mở máy.", "登录后在菜单栏中随时使用 Rydool。"),
+        ("Allow Rydool in Login Items…", "Cho phép Rydool trong mục đăng nhập…", "在登录项中允许 Rydool…"),
+        ("Customize how Rydool works on your Mac.", "Tùy chỉnh cách Rydool hoạt động trên máy Mac.", "自定义 Rydool 在 Mac 上的运行方式。"),
+        ("Choose shortcuts for quick access to your tools.", "Chọn phím tắt để mở nhanh các công cụ.", "选择快速打开工具的快捷键。"),
+        ("Manage clipboard history and excluded apps.", "Quản lý lịch sử và những ứng dụng cần bỏ qua.", "管理剪贴板历史和忽略的应用。"),
+        ("GLOBAL SHORTCUTS", "PHÍM TẮT TOÀN HỆ THỐNG", "全局快捷键"),
+        ("Capture Area", "Chụp vùng", "区域截图"),
+        ("Capture Full Screen", "Chụp toàn màn hình", "全屏截图"),
+        ("Clipboard History", "Lịch sử clipboard", "剪贴板历史"),
+        ("If a shortcut conflicts with another app or macOS, choose a different combination.", "Nếu phím tắt trùng với ứng dụng khác hoặc macOS, hãy chọn tổ hợp khác.", "如果快捷键与其他应用或 macOS 冲突，请选择其他组合。"),
+        ("HISTORY", "LỊCH SỬ", "历史记录"),
+        ("Save clipboard history", "Lưu lịch sử clipboard", "保存剪贴板历史"),
+        ("Save copied items on this Mac.", "Lưu các mục sao chép trên máy này.", "在此 Mac 上保存复制的内容。"),
+        ("Unpinned items: %d", "Mục không ghim: %d", "未固定项目：%d"),
+        ("Unpinned items", "Mục không ghim", "未固定项目"),
+        ("Maximum storage: %d MB", "Dung lượng tối đa: %d MB", "最大存储空间：%d MB"),
+        ("Maximum storage", "Dung lượng tối đa", "最大存储空间"),
+        ("History may contain sensitive information. Rydool cannot detect every password.", "Lịch sử có thể chứa nội dung nhạy cảm. Rydool không thể nhận diện mọi mật khẩu.", "历史记录可能包含敏感信息。Rydool 无法识别所有密码。"),
+        ("EXCLUDED APPS", "ỨNG DỤNG BỎ QUA", "忽略的应用"),
+        ("Exclude applications", "Không lưu từ ứng dụng", "不保存来自这些应用的内容"),
+        ("Copied content from these apps won't be added to history. The source app is an estimate.", "Nội dung sao chép từ các ứng dụng này sẽ không được thêm vào lịch sử. Ứng dụng nguồn chỉ là ước đoán.", "来自这些应用的复制内容不会添加到历史记录。来源应用仅为估计。"),
+        ("No applications selected", "Chưa chọn ứng dụng nào", "尚未选择应用"),
+        ("Add application…", "Thêm ứng dụng…", "添加应用…"),
+        ("Choose applications to exclude from clipboard history.", "Chọn ứng dụng bạn không muốn lưu vào lịch sử clipboard.", "选择不保存剪贴板历史的应用。"),
+        ("Add", "Thêm", "添加"),
+        ("Couldn't identify one or more selected applications.", "Không thể nhận diện một hoặc nhiều ứng dụng đã chọn.", "无法识别一个或多个所选应用。"),
+        ("Unknown application", "Ứng dụng không xác định", "未知应用"),
+        ("Application not found", "Không tìm thấy ứng dụng", "找不到应用"),
+        ("Remove %@ from list", "Bỏ %@ khỏi danh sách", "从列表中移除%@"),
+        ("Press a shortcut…", "Nhấn tổ hợp phím…", "按下快捷键…"),
+        ("Reset", "Khôi phục", "恢复默认"),
+        ("Cancel", "Hủy", "取消"),
+        ("Change shortcut", "Đổi phím tắt", "更改快捷键"),
+        ("History on", "Lịch sử đang bật", "历史记录已开启"),
+        ("History paused", "Lịch sử đã tạm dừng", "历史记录已暂停"),
+        ("SCREENSHOT", "CHỤP MÀN HÌNH", "屏幕截图"),
+        ("CLIPBOARD", "CLIPBOARD", "剪贴板"),
+        ("Recent Screenshots", "Ảnh chụp gần đây", "最近的截图"),
+        ("Allow Screen Recording…", "Cho phép chụp màn hình…", "允许屏幕录制…"),
+        ("Pause Clipboard History", "Tạm dừng lưu lịch sử", "暂停剪贴板历史"),
+        ("Enable Clipboard History", "Bật lưu lịch sử", "启用剪贴板历史"),
+        ("Quit Rydool", "Thoát Rydool", "退出 Rydool"),
+        ("History stored on this Mac", "Lịch sử lưu trên máy", "历史记录保存在此 Mac 上"),
+        ("%d item", "%d mục", "%d 项"),
+        ("%d items", "%d mục", "%d 项"),
+        ("Search history", "Tìm trong lịch sử", "搜索历史记录"),
+        ("Clear search", "Xóa tìm kiếm", "清除搜索"),
+        ("Clipboard tracking is off. Items are saved after you turn it on.", "Theo dõi clipboard đang tắt. Dữ liệu chỉ được lưu sau khi bạn bật.", "剪贴板跟踪已关闭。开启后才会保存新内容。"),
+        ("Enable", "Bật", "启用"),
+        ("Close", "Đóng", "关闭"),
+        ("No clipboard history yet", "Chưa có lịch sử clipboard", "暂无剪贴板历史"),
+        ("No results found", "Không tìm thấy kết quả", "没有找到结果"),
+        ("Clipboard image", "Ảnh clipboard", "剪贴板图像"),
+        ("Pin", "Ghim", "固定"),
+        ("Unpin", "Bỏ ghim", "取消固定"),
+        ("Delete", "Xóa", "删除"),
+        ("Clear all…", "Xóa toàn bộ…", "清除全部…"),
+        ("↑↓ Select   ↵ Paste", "↑↓ Chọn   ↵ Dán", "↑↓ 选择   ↵ 粘贴"),
+        ("Clear all history?", "Xóa toàn bộ lịch sử?", "清除所有历史记录？"),
+        ("Clear all", "Xóa tất cả", "清除全部"),
+        ("Pinned items will also be deleted.", "Các mục đã ghim cũng sẽ bị xóa.", "固定的项目也会被删除。"),
+        ("Just now", "Vừa xong", "刚刚"),
+        ("%d minute ago", "%d phút trước", "%d 分钟前"),
+        ("%d minutes ago", "%d phút trước", "%d 分钟前"),
+        ("%d hour ago", "%d giờ trước", "%d 小时前"),
+        ("%d hours ago", "%d giờ trước", "%d 小时前"),
+        ("%d day ago", "%d ngày trước", "%d 天前"),
+        ("%d days ago", "%d ngày trước", "%d 天前"),
+        ("%d month ago", "%d tháng trước", "%d 个月前"),
+        ("%d months ago", "%d tháng trước", "%d 个月前"),
+        ("%d year ago", "%d năm trước", "%d 年前"),
+        ("%d years ago", "%d năm trước", "%d 年前"),
+        ("Allow automatic paste", "Cho phép dán tự động", "允许自动粘贴"),
+        ("The item was copied. To paste automatically, allow Rydool in Privacy & Security → Accessibility, then select the item again. You can also paste with ⌘V.", "Mục đã được sao chép. Để Rydool tự dán vào ứng dụng trước đó, hãy cho phép Rydool trong Quyền riêng tư & Bảo mật → Trợ năng, rồi chọn lại mục. Bạn cũng có thể tự dán bằng ⌘V.", "内容已复制。要自动粘贴，请在“隐私与安全性”→“辅助功能”中允许 Rydool，然后重新选择该项目。也可以按 ⌘V 手动粘贴。"),
+        ("Edit screenshot", "Chỉnh sửa ảnh", "编辑截图"),
+        ("Edit", "Sửa", "编辑"),
+        ("Copy", "Sao chép", "复制"),
+        ("Save", "Lưu", "保存"),
+        ("Copy to Clipboard", "Sao chép vào clipboard", "复制到剪贴板"),
+        ("Save to File", "Lưu vào tệp", "保存到文件"),
+        ("Copy + Save", "Sao chép + Lưu", "复制并保存"),
+        ("Copy & Save", "Sao chép và Lưu", "复制并保存"),
+        ("Space", "Phím cách", "空格"),
+        ("Key %d", "Phím %d", "按键 %d"),
+        ("Close preview", "Đóng ảnh xem trước", "关闭预览"),
+        ("Copied to Clipboard", "Đã sao chép vào clipboard", "已复制到剪贴板"),
+        ("Saved", "Đã lưu", "已保存"),
+        ("Screenshot", "Ảnh chụp màn hình", "截图"),
+        ("Screenshot canvas", "Vùng chỉnh sửa ảnh", "截图编辑画布"),
+        ("Rydool needs Screen Recording permission\nto capture your screen.", "Rydool cần quyền Ghi màn hình\nđể chụp màn hình.", "Rydool 需要屏幕录制权限\n才能截取屏幕。"),
+        ("Turn on Rydool in System Settings, then reopen Rydool. Screenshots never leave your Mac.", "Bật quyền cho Rydool trong Cài đặt hệ thống, rồi mở lại ứng dụng. Ảnh chụp luôn ở trên máy Mac của bạn.", "在系统设置中为 Rydool 开启权限，然后重新打开应用。截图不会离开您的 Mac。"),
+        ("Open System Settings", "Mở Cài đặt hệ thống", "打开系统设置"),
+        ("Not Now", "Để sau", "暂不"),
+        ("Reopen Rydool", "Mở lại Rydool", "重新打开 Rydool"),
+        ("Pen", "Bút", "画笔"), ("Arrow", "Mũi tên", "箭头"),
+        ("Rectangle", "Hình chữ nhật", "矩形"), ("Text", "Chữ", "文字"),
+        ("Thin", "Mảnh", "细"), ("Medium", "Vừa", "中"), ("Thick", "Dày", "粗"),
+        ("Red", "Đỏ", "红色"), ("Yellow", "Vàng", "黄色"), ("Green", "Xanh lá", "绿色"),
+        ("Blue", "Xanh dương", "蓝色"), ("Black", "Đen", "黑色"), ("White", "Trắng", "白色"),
+        ("Undo (⌘Z)", "Hoàn tác (⌘Z)", "撤销 (⌘Z)"),
+        ("Cancel (Esc)", "Hủy (Esc)", "取消 (Esc)"),
+        ("Save As… (⌘S)", "Lưu thành… (⌘S)", "另存为… (⌘S)"),
+        ("Thickness: %@", "Độ dày: %@", "粗细：%@"),
+        ("Couldn't export image", "Không thể xuất ảnh", "无法导出图像"),
+        ("Please try again.", "Hãy thử lại.", "请重试。"),
+        ("Select the capture area and try again.", "Hãy chọn lại vùng chụp và thử lại.", "请重新选择截图区域并重试。"),
+        ("This item is no longer in history.", "Mục này không còn trong lịch sử.", "此项目已不在历史记录中。"),
+        ("Couldn't copy this item to the clipboard.", "Không thể copy mục này vào clipboard.", "无法将此项目复制到剪贴板。"),
+        ("Clipboard is busy; the new item was not saved.", "Clipboard đang xử lý nhiều dữ liệu; mục mới không được lưu.", "剪贴板正忙，未保存新项目。"),
+        ("Couldn't save clipboard item", "Không thể lưu mục clipboard", "无法保存剪贴板项目"),
+        ("Couldn't open clipboard history.", "Không thể mở lịch sử clipboard.", "无法打开剪贴板历史。"),
+        ("Couldn't save clipboard history", "Không thể lưu lịch sử clipboard", "无法保存剪贴板历史"),
+        ("Clipboard item is too large to save in history.", "Mục clipboard quá lớn để lưu vào lịch sử.", "剪贴板项目过大，无法保存到历史记录。"),
+        ("Clipboard item is too large", "Mục clipboard quá lớn", "剪贴板项目过大"),
+        ("Couldn't access clipboard history. Check storage space and permissions.", "Không thể truy cập lịch sử clipboard. Hãy kiểm tra dung lượng và quyền lưu trữ.", "无法访问剪贴板历史。请检查存储空间和权限。"),
+        ("History is full; unpin or delete items before saving more.", "Lịch sử đã đầy; hãy bỏ ghim hoặc xóa bớt mục trước khi lưu thêm.", "历史记录已满；请先取消固定或删除一些项目。"),
+        ("This shortcut is already used by another Rydool feature.", "Phím tắt này đã được dùng bởi một chức năng khác của Rydool.", "此快捷键已被 Rydool 的其他功能使用。"),
+        ("Another app is already using %@. Try a different shortcut.", "Ứng dụng khác đang dùng %@. Hãy chọn phím tắt khác.", "其他应用正在使用 %@。请尝试其他快捷键。"),
+        ("Couldn't restore shortcut %@. Set it again in Settings.", "Không thể khôi phục phím tắt %@. Hãy đặt lại trong cài đặt.", "无法恢复快捷键 %@。请在设置中重新设置。"),
+        ("%@ is in use by another app. Choose a different shortcut.", "%@ đang được ứng dụng khác sử dụng. Hãy chọn phím tắt khác.", "%@ 正被其他应用使用。请选择其他快捷键。"),
+        ("Press a key together with the modifiers.", "Nhấn một phím cùng các phím bổ trợ.", "请同时按下一个按键和修饰键。"),
+        ("Escape is used to cancel a capture. Choose a different key.", "Escape dùng để hủy chụp. Hãy chọn phím khác.", "Escape 用于取消截图。请选择其他按键。"),
+        ("Include ⌘, ⌥ or ⌃ so the shortcut doesn't get in the way of typing.", "Thêm ⌘, ⌥ hoặc ⌃ để không ảnh hưởng đến việc gõ chữ.", "请包含 ⌘、⌥ 或 ⌃，以免影响输入。"),
+        ("%@ is a standard Mac shortcut used by most apps. Choose a different one.", "%@ là phím tắt macOS phổ biến. Hãy chọn tổ hợp khác.", "%@ 是大多数应用使用的 Mac 标准快捷键。请选择其他组合。"),
+        ("%@ is reserved by macOS. Choose a different one.", "%@ được macOS dành riêng. Hãy chọn tổ hợp khác.", "%@ 是 macOS 保留的快捷键。请选择其他组合。"),
+        ("Screenshots", "Chụp màn hình", "屏幕截图"),
+        ("a system shortcut", "phím tắt hệ thống", "系统快捷键"),
+        ("macOS also uses %@ for %@. Turn it off in System Settings › Keyboard › Keyboard Shortcuts so Rydool receives it.", "macOS cũng dùng %@ cho %@. Hãy tắt nó trong Cài đặt hệ thống › Bàn phím › Phím tắt để Rydool nhận được phím này.", "macOS 也将 %@ 用于%@。请在“系统设置”›“键盘”›“键盘快捷键”中将其关闭，以便 Rydool 接收该快捷键。"),
+        ("Shortcut unavailable", "Phím tắt không khả dụng", "快捷键不可用"),
+        ("Cannot register %@. Another app may be using these shortcuts. Use the menu or choose different shortcuts in Rydool settings.", "Không thể đăng ký %@. Có thể ứng dụng khác đang dùng các phím này. Hãy dùng menu hoặc chọn phím tắt khác trong cài đặt Rydool.", "无法注册 %@。其他应用可能正在使用这些快捷键。请使用菜单或在 Rydool 设置中选择其他快捷键。"),
+        ("Couldn't change the login item. Try again from System Settings › General › Login Items.", "Không thể thay đổi mục đăng nhập. Hãy thử lại trong Cài đặt hệ thống › Cài đặt chung › Mục đăng nhập.", "无法更改登录项。请在“系统设置”›“通用”›“登录项”中重试。"),
+        ("Launch at Login works when Rydool runs as an app (build it with Scripts/build-app.sh).", "Mở khi đăng nhập hoạt động khi Rydool chạy dưới dạng ứng dụng.", "以应用形式运行 Rydool 时才能使用登录时启动。"),
+        ("Rydool needs Screen Recording permission to capture your screen.", "Rydool cần quyền Ghi màn hình để chụp màn hình.", "Rydool 需要屏幕录制权限才能截图。"),
+        ("Rydool couldn't find a display to capture. If you just connected or disconnected a monitor, try again.", "Rydool không tìm thấy màn hình để chụp. Nếu bạn vừa kết nối hoặc ngắt kết nối màn hình, hãy thử lại.", "Rydool 找不到可截图的显示器。如果刚连接或断开显示器，请重试。"),
+        ("Rydool couldn't capture the screen. Please try again.", "Rydool không thể chụp màn hình. Hãy thử lại.", "Rydool 无法截取屏幕。请重试。"),
+        ("Rydool couldn't prepare the image. Please try again.", "Rydool không thể chuẩn bị ảnh. Hãy thử lại.", "Rydool 无法处理图像。请重试。"),
+        ("Rydool couldn't copy the screenshot to the clipboard. Please try again.", "Rydool không thể sao chép ảnh vào clipboard. Hãy thử lại.", "Rydool 无法将截图复制到剪贴板。请重试。"),
+        ("Rydool couldn't save to “%@”. Check that the folder exists and you can write to it.", "Rydool không thể lưu vào “%@”. Hãy kiểm tra thư mục và quyền ghi.", "Rydool 无法保存到“%@”。请检查文件夹是否存在以及是否有写入权限。"),
+        ("Something went wrong. Please try again.", "Đã có lỗi xảy ra. Hãy thử lại.", "出现问题。请重试。"),
+        ("Undo", "Hoàn tác", "撤销"), ("Redo", "Làm lại", "重做"),
+        ("Cut", "Cắt", "剪切"), ("Paste", "Dán", "粘贴"), ("Select All", "Chọn tất cả", "全选")
+    ]
+
+    private static let vietnamese = Dictionary(uniqueKeysWithValues: translations.map { ($0.0, $0.1) })
+    private static let chinese = Dictionary(uniqueKeysWithValues: translations.map { ($0.0, $0.2) })
+
+    static func text(_ key: String, language: AppLanguage) -> String {
+        switch language {
+        case .english: key
+        case .vietnamese: vietnamese[key] ?? key
+        case .simplifiedChinese: chinese[key] ?? key
+        }
+    }
+
+    static func format(_ key: String, language: AppLanguage, arguments: [CVarArg]) -> String {
+        let format = text(key, language: language)
+        return arguments.isEmpty ? format : String(format: format, locale: Locale(identifier: language.rawValue), arguments: arguments)
+    }
+}
+
+func L(_ key: String, _ arguments: CVarArg...) -> String {
+    Localization.format(key, language: AppSettings.shared.language, arguments: arguments)
+}

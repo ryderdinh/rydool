@@ -1,0 +1,13 @@
+name: Build and test
+on:
+  push:
+  pull_request:
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test
+        run: swift test
+      - name: Assemble app
+        run: ARCHS="arm64 x86_64" Scripts/build-app.sh debug
