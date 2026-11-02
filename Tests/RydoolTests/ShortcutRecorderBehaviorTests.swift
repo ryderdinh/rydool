@@ -5,7 +5,7 @@ import XCTest
 
 private final class FakeShortcutEnvironment: ShortcutRecordingEnvironment {
     var combos: [ShortcutCaptureController.Action: ShortcutBinding] = [
-        .region: .default, .history: .historyDefault, .fullScreen: .fullScreenDefault
+        .region: .default, .history: .historyDefault, .fullScreen: .fullScreenDefault, .screenRecording: .recordingDefault
     ]
     var registered: [ShortcutCaptureController.Action: ShortcutBinding] = [:]
     var reject: ShortcutBinding?
@@ -52,5 +52,6 @@ final class ShortcutRecorderBehaviorTests: XCTestCase {
         XCTAssertEqual(env.registered[.region], replacement)
         XCTAssertEqual(env.registered[.history], .historyDefault)
         XCTAssertEqual(env.registered[.fullScreen], .fullScreenDefault)
+        XCTAssertEqual(env.registered[.screenRecording], .recordingDefault)
     }
 }

@@ -11,6 +11,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        MainActor.assumeIsolated { RecordingCoordinator.shared.mayQuit() ? .terminateNow : .terminateCancel }
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         MainActor.assumeIsolated {
             runtime?.stop()
@@ -43,7 +47,7 @@ private final class AppRuntime {
     func stop() {
         if let languageObserver { NotificationCenter.default.removeObserver(languageObserver) }
         languageObserver = nil
-        for manager in [GlobalHotkeyManager.shared, .history, .fullScreen] {
+        for manager in [GlobalHotkeyManager.shared, .history, .fullScreen, .screenRecording] {
             manager.unregister()
             manager.onTrigger = nil
         }
@@ -56,7 +60,11 @@ private final class AppRuntime {
         let bindings: [(GlobalHotkeyManager, ShortcutBinding, () -> Void)] = [
             (.shared, settings.shortcut, { MainActor.assumeIsolated { ScreenshotFlow.shared.start() } }),
             (.history, settings.historyShortcut, { MainActor.assumeIsolated { HistoryWindowController.shared.show() } }),
-            (.fullScreen, settings.fullScreenShortcut, { MainActor.assumeIsolated { ScreenshotFlow.shared.start(fullScreen: true) } })
+            (.fullScreen, settings.fullScreenShortcut, { MainActor.assumeIsolated { ScreenshotFlow.shared.start(fullScreen: true) } }),
+            (.screenRecording, settings.recordingShortcut, { MainActor.assumeIsolated {
+                let recording = RecordingCoordinator.shared
+                if recording.phase == .recording { recording.stop() } else { recording.showSetup() }
+            } })
         ]
         var unavailable: [String] = []
         for (manager, combo, action) in bindings {

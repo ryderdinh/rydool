@@ -37,6 +37,7 @@ final class GlobalHotkeyManager {
     static let shared = GlobalHotkeyManager(signature: 0x52594431)
     static let history = GlobalHotkeyManager(signature: 0x52594432)
     static let fullScreen = GlobalHotkeyManager(signature: 0x52594433)
+    static let screenRecording = GlobalHotkeyManager(signature: 0x52594434)
 
     enum RegistrationError: Error {
         case alreadyInUse

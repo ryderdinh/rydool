@@ -26,6 +26,29 @@ final class AppSettingsPersistenceTests: XCTestCase {
         XCTAssertEqual(restored.lineWeight, .thin)
     }
 
+    func testRecordingQualityPersistsAndDefaultsAreStable() throws {
+        let suite = "rydool-settings-test-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: defaults)
+        XCTAssertEqual(settings.recordingResolution, .native)
+        XCTAssertEqual(settings.recordingFrameRate, .fps60)
+        XCTAssertEqual(settings.recordingBitrate, .balanced)
+        XCTAssertTrue(settings.recordingSystemAudio)
+        XCTAssertFalse(settings.recordingMicrophone)
+        settings.recordingResolution = .hd1080
+        settings.recordingFrameRate = .fps30
+        settings.recordingBitrate = .high
+        settings.recordingSystemAudio = false
+        settings.recordingMicrophone = true
+        let restored = AppSettings(defaults: defaults)
+        XCTAssertEqual(restored.recordingResolution, .hd1080)
+        XCTAssertEqual(restored.recordingFrameRate, .fps30)
+        XCTAssertEqual(restored.recordingBitrate, .high)
+        XCTAssertFalse(restored.recordingSystemAudio)
+        XCTAssertTrue(restored.recordingMicrophone)
+    }
+
     func testInvalidStoredShortcutFallsBackToDefault() throws {
         let suite = "rydool-settings-test-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

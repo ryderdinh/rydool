@@ -19,6 +19,7 @@ private final class SystemShortcutEnvironment: ShortcutRecordingEnvironment {
         case .region: .shared
         case .history: .history
         case .fullScreen: .fullScreen
+        case .screenRecording: .screenRecording
         }
     }
 
@@ -27,6 +28,7 @@ private final class SystemShortcutEnvironment: ShortcutRecordingEnvironment {
         case .region: settings.shortcut
         case .history: settings.historyShortcut
         case .fullScreen: settings.fullScreenShortcut
+        case .screenRecording: settings.recordingShortcut
         }
     }
 
@@ -35,6 +37,7 @@ private final class SystemShortcutEnvironment: ShortcutRecordingEnvironment {
         case .region: settings.shortcut = combo
         case .history: settings.historyShortcut = combo
         case .fullScreen: settings.fullScreenShortcut = combo
+        case .screenRecording: settings.recordingShortcut = combo
         }
     }
 
@@ -53,7 +56,7 @@ final class ShortcutCaptureController: ObservableObject {
         let text: String
         let kind: Kind
     }
-    enum Action: CaseIterable, Hashable { case region, history, fullScreen }
+    enum Action: CaseIterable, Hashable { case region, history, fullScreen, screenRecording }
 
     @Published private(set) var isRecording = false
     @Published private(set) var liveModifiers: NSEvent.ModifierFlags = []
@@ -78,6 +81,7 @@ final class ShortcutCaptureController: ObservableObject {
         case .region: .default
         case .history: .historyDefault
         case .fullScreen: .fullScreenDefault
+        case .screenRecording: .recordingDefault
         }
     }
 

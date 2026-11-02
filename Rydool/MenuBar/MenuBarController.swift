@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Combine
 
 final class PermissionStatus: ObservableObject {
     @Published var isGranted = ScreenAccess.isGranted
@@ -13,6 +14,7 @@ final class MenuBarController: NSObject {
     private let permission = PermissionStatus()
     private var animator: StatusItemAnimator?
     private var previousApp: NSRunningApplication?
+    private var recordingObserver: AnyCancellable?
 
     init(onCapture: @escaping () -> Void) {
         super.init()
@@ -32,6 +34,11 @@ final class MenuBarController: NSObject {
                 self?.afterClosing { MainActor.assumeIsolated { ScreenshotFlow.shared.start(fullScreen: true) } }
             }, onCapture: { [weak self] in
                 self?.afterClosing(onCapture)
+            }, onRecording: { [weak self] in
+                self?.afterClosing { MainActor.assumeIsolated {
+                    let recording = RecordingCoordinator.shared
+                    if recording.phase == .recording { recording.stop() } else { recording.showSetup() }
+                } }
             }, onRecentScreenshots: { [weak self] in
                 self?.closePopover()
                 MainActor.assumeIsolated { ScreenshotPreviews.shared.showRecent() }
@@ -43,6 +50,15 @@ final class MenuBarController: NSObject {
                 MainActor.assumeIsolated { SettingsWindowController.shared.show() }
             }, onQuit: { NSApp.terminate(nil) }
         )
+        MainActor.assumeIsolated {
+            recordingObserver = RecordingCoordinator.shared.$phase.receive(on: RunLoop.main).sink { [weak self] phase in
+                guard let self else { return }
+                let active = phase == .recording
+                self.item.length = active ? NSStatusItem.variableLength : NSStatusItem.squareLength
+                self.item.button?.imagePosition = active ? .imageLeading : .imageOnly
+                self.item.button?.attributedTitle = NSAttributedString(string: active ? " ●" : "", attributes: [.foregroundColor: NSColor.systemRed])
+            }
+        }
         let controller = NSHostingController(rootView: content)
         controller.sizingOptions = .preferredContentSize
         menu.contentViewController = controller

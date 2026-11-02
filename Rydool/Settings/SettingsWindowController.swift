@@ -10,6 +10,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let recorder = ShortcutCaptureController()
     private let historyRecorder = ShortcutCaptureController(.history)
     private let fullScreenRecorder = ShortcutCaptureController(.fullScreen)
+    private let screenRecordingRecorder = ShortcutCaptureController(.screenRecording)
     private var window: NSWindow?
     private var languageObservation: AnyCancellable?
 
@@ -29,7 +30,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             window.contentView = NSHostingView(rootView: PreferencesView(
                 recorder: recorder,
                 historyRecorder: historyRecorder,
-                fullScreenRecorder: fullScreenRecorder
+                fullScreenRecorder: fullScreenRecorder,
+                screenRecordingRecorder: screenRecordingRecorder
             ))
             window.center()
             self.window = window
@@ -45,5 +47,6 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         recorder.cancel()
         historyRecorder.cancel()
         fullScreenRecorder.cancel()
+        screenRecordingRecorder.cancel()
     }
 }

@@ -34,6 +34,8 @@
 	<string>Rydool. Everything stays on your Mac.</string>
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>Rydool needs screen access to capture and annotate screenshots.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Rydool uses the microphone when you choose to include it in a screen recording.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

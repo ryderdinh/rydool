@@ -8,6 +8,7 @@ struct ShortcutBinding: Codable, Equatable {
 
     static let supportedModifiers: NSEvent.ModifierFlags = [.command, .option, .control, .shift]
     static let `default` = ShortcutBinding(keyCode: UInt32(kVK_ANSI_4), modifiers: [.command, .shift])
+    static let recordingDefault = ShortcutBinding(keyCode: UInt32(kVK_ANSI_R), modifiers: [.control, .option, .shift])
     static let historyDefault = ShortcutBinding(keyCode: UInt32(kVK_ANSI_V), modifiers: [.option, .shift])
     static let fullScreenDefault = ShortcutBinding(keyCode: UInt32(kVK_ANSI_3), modifiers: [.command, .shift])
 
