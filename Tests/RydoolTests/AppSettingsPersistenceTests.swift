@@ -13,6 +13,7 @@ final class AppSettingsPersistenceTests: XCTestCase {
         defaults.set(AnnotationColor.blue.rawValue, forKey: "annotationColor")
         defaults.set(LineWeight.thick.rawValue, forKey: "annotationLineWeight")
         let settings = AppSettings(defaults: defaults)
+        XCTAssertFalse(settings.isFirstLaunch)
         XCTAssertEqual(settings.shortcut, original)
         XCTAssertEqual(settings.annotationColor, .blue)
         XCTAssertEqual(settings.lineWeight, .thick)
@@ -47,6 +48,14 @@ final class AppSettingsPersistenceTests: XCTestCase {
         XCTAssertEqual(restored.recordingBitrate, .high)
         XCTAssertFalse(restored.recordingSystemAudio)
         XCTAssertTrue(restored.recordingMicrophone)
+    }
+
+    func testFirstLaunchIsOnlyReportedOnce() throws {
+        let suite = "rydool-first-launch-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        XCTAssertTrue(AppSettings(defaults: defaults).isFirstLaunch)
+        XCTAssertFalse(AppSettings(defaults: defaults).isFirstLaunch)
     }
 
     func testInvalidStoredShortcutFallsBackToDefault() throws {

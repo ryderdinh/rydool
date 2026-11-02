@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var runtime: AppRuntime?
@@ -28,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 private final class AppRuntime {
     private var menuBar: MenuBarController?
     private var languageObserver: NSObjectProtocol?
+    private var accessibilityTimer: Timer?
 
     func start() {
         NSApp.setActivationPolicy(.accessory)
@@ -40,11 +42,25 @@ private final class AppRuntime {
         menuBar = menu
         ScreenshotFlow.shared.willBeginCapture = { [weak menu] in menu?.closePopover() }
         installShortcuts()
+        watchAccessibility()
         _ = ClipboardHistory.shared
         DisplaySnapshotService.shared.warmUp()
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["RYDOOL_TEST_DEFAULTS"] != nil {
+            if ProcessInfo.processInfo.environment["RYDOOL_TEST_SHOW_PERMISSIONS"] == "1" {
+                SettingsWindowController.shared.show(section: .permissions)
+            }
+            return
+        }
+        #endif
+        if AppSettings.shared.isFirstLaunch {
+            SettingsWindowController.shared.show(section: .permissions)
+        }
     }
 
     func stop() {
+        accessibilityTimer?.invalidate()
+        accessibilityTimer = nil
         if let languageObserver { NotificationCenter.default.removeObserver(languageObserver) }
         languageObserver = nil
         for manager in [GlobalHotkeyManager.shared, .history, .fullScreen, .screenRecording] {
@@ -53,6 +69,14 @@ private final class AppRuntime {
         }
         ScreenshotFlow.shared.willBeginCapture = nil
         menuBar = nil
+    }
+
+    private func watchAccessibility() {
+        accessibilityTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { _ in
+            guard AXIsProcessTrusted() else { return }
+            GlobalHotkeyManager.shared.promoteToEventTap()
+            GlobalHotkeyManager.fullScreen.promoteToEventTap()
+        }
     }
 
     private func installShortcuts() {

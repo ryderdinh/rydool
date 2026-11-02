@@ -122,11 +122,14 @@ struct SelectionManager {
 final class SelectionChromeView: NSView {
     var selection: CGRect? { didSet { needsDisplay = true } }
     var showsHandles = false { didSet { needsDisplay = true } }
+    var imagePixelSize: CGSize = .zero { didSet { needsDisplay = true } }
+    var displayedPixelSize: CGSize? { didSet { needsDisplay = true } }
+    var showsDimensions = true { didSet { needsDisplay = true } }
     override var isFlipped: Bool { true }
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
     override func draw(_ dirtyRect: NSRect) {
-        NSColor.black.withAlphaComponent(0.32).setFill()
+        NSColor.black.withAlphaComponent(0.38).setFill()
         guard let selected = selection, selected.width > 0, selected.height > 0 else {
             dirtyRect.fill()
             return
@@ -141,41 +144,56 @@ final class SelectionChromeView: NSView {
             CGRect(x: selected.maxX, y: selected.minY, width: max(0, frame.maxX - selected.maxX), height: selected.height)
         ]
         shade.forEach { $0.fill() }
-        NSColor.black.withAlphaComponent(0.35).setStroke()
-        NSBezierPath(rect: selected.insetBy(dx: -1.5, dy: -1.5)).stroke()
-        NSColor.white.setStroke()
-        NSBezierPath(rect: selected.insetBy(dx: -0.5, dy: -0.5)).stroke()
+        let outline = NSBezierPath(rect: selected)
+        outline.lineWidth = 3
+        NSColor.black.withAlphaComponent(0.55).setStroke()
+        outline.stroke()
+        outline.lineWidth = 1.5
+        NSColor.controlAccentColor.setStroke()
+        outline.stroke()
         if showsHandles { drawHandles(in: selected) }
-        drawDimensions(in: selected)
+        if showsDimensions { drawDimensions(in: selected) }
     }
 
     private func drawHandles(in rect: CGRect) {
         for handle in SelectionHandle.allCases {
             if !handle.isCorner && min(rect.width, rect.height) < 40 { continue }
             let p = handle.point(in: rect)
-            let path = NSBezierPath(ovalIn: CGRect(x: p.x - 4, y: p.y - 4, width: 8, height: 8))
+            let path = NSBezierPath(ovalIn: CGRect(x: p.x - 4.5, y: p.y - 4.5, width: 9, height: 9))
+            NSColor.black.withAlphaComponent(0.45).setStroke()
+            path.lineWidth = 3
+            path.stroke()
             NSColor.white.setFill()
             path.fill()
-            NSColor.black.withAlphaComponent(0.3).setStroke()
+            NSColor.controlAccentColor.setStroke()
+            path.lineWidth = 1.5
             path.stroke()
         }
     }
 
     private func drawDimensions(in rect: CGRect) {
-        let label = "\(Int(rect.width)) × \(Int(rect.height))" as NSString
+        let sizeInPixels = displayedPixelSize ?? PixelMapping(imageSize: imagePixelSize, viewSize: bounds.size, selection: rect)?.crop.size
+        guard let sizeInPixels else { return }
+        let label = "\(Int(sizeInPixels.width)) × \(Int(sizeInPixels.height)) px" as NSString
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .medium),
             .foregroundColor: NSColor.white
         ]
         let textSize = label.size(withAttributes: attributes)
-        let size = CGSize(width: ceil(textSize.width) + 12, height: ceil(textSize.height) + 6)
+        let size = CGSize(width: ceil(textSize.width) + 22, height: ceil(textSize.height) + 10)
         var x = rect.minX
         var y = rect.minY - size.height - 6
         if y < bounds.minY + 4 { x += 6; y = rect.minY + 6 }
         x = min(max(bounds.minX + 4, x), bounds.maxX - size.width - 4)
         let badge = CGRect(origin: CGPoint(x: x, y: y), size: size)
-        NSColor.black.withAlphaComponent(0.72).setFill()
-        NSBezierPath(roundedRect: badge, xRadius: 5, yRadius: 5).fill()
-        label.draw(at: CGPoint(x: x + 6, y: y + 3), withAttributes: attributes)
+        let path = NSBezierPath(roundedRect: badge, xRadius: size.height / 2, yRadius: size.height / 2)
+        NSColor(calibratedWhite: 0.08, alpha: 0.90).setFill()
+        path.fill()
+        NSColor.white.withAlphaComponent(0.22).setStroke()
+        path.lineWidth = 0.5
+        path.stroke()
+        NSColor.controlAccentColor.setFill()
+        NSBezierPath(ovalIn: CGRect(x: x + 8, y: y + (size.height - 5) / 2, width: 5, height: 5)).fill()
+        label.draw(at: CGPoint(x: x + 16, y: y + 5), withAttributes: attributes)
     }
 }

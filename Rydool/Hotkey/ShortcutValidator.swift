@@ -40,11 +40,11 @@ enum ShortcutValidator {
             return .invalid(L("%@ is reserved by macOS. Choose a different one.", combo.displayString))
         }
 
-        let screenshotKey = [UInt32(kVK_ANSI_3), UInt32(kVK_ANSI_4), UInt32(kVK_ANSI_5)].contains(key)
-        let screenshotFlags = flags == [.command, .shift]
-            || (key != UInt32(kVK_ANSI_5) && flags == [.command, .shift, .control])
-        let screenshot = screenshotKey && screenshotFlags
+        let screenshot = GlobalHotkeyManager.isSystemScreenshot(combo)
         if screenshot || systemShortcutExists(combo) {
+            if screenshot {
+                return .warning(L("macOS also uses %@ for screenshots. For Rydool capture shortcuts, allow Accessibility access to intercept it.", combo.displayString))
+            }
             let feature = screenshot ? L("Screenshots") : L("a system shortcut")
             return .warning(L("macOS also uses %@ for %@. Turn it off in System Settings › Keyboard › Keyboard Shortcuts so Rydool receives it.", combo.displayString, feature))
         }

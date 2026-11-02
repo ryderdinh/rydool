@@ -135,13 +135,24 @@ private struct MenuCommandRow: View {
                 trailing
             }
             .padding(.horizontal, 8).frame(height: 38).frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.primary.opacity(hovering ? 0.08 : 0), in: RoundedRectangle(cornerRadius: 8))
+            .background { hoverSurface }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(command.title)
         .padding(.horizontal, 8)
         .onHover { hovering = $0 }
+    }
+
+    @ViewBuilder private var hoverSurface: some View {
+        if hovering {
+            if #available(macOS 26.0, *) {
+                RoundedRectangle(cornerRadius: 8).fill(.clear)
+                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 8))
+            } else {
+                RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.08))
+            }
+        }
     }
 
     @ViewBuilder private var trailing: some View {

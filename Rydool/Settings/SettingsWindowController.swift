@@ -13,8 +13,10 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let screenRecordingRecorder = ShortcutCaptureController(.screenRecording)
     private var window: NSWindow?
     private var languageObservation: AnyCancellable?
+    private let navigation = SettingsNavigation()
 
-    func show() {
+    func show(section: SettingsSection? = nil) {
+        if let section { navigation.section = section }
         LaunchAtLogin.shared.refresh()
         if window == nil {
             let window = NSWindow(
@@ -31,7 +33,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
                 recorder: recorder,
                 historyRecorder: historyRecorder,
                 fullScreenRecorder: fullScreenRecorder,
-                screenRecordingRecorder: screenRecordingRecorder
+                screenRecordingRecorder: screenRecordingRecorder,
+                navigation: navigation
             ))
             window.center()
             self.window = window

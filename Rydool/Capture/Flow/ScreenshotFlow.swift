@@ -8,6 +8,9 @@ private final class CaptureSession {
     var windows: [SelectionWindow] = []
     var overlays: [SelectionCanvas] = []
     var screenObserver: NSObjectProtocol?
+    var snapshots: [DisplaySnapshot] = []
+    var dragAnchor: CGPoint?
+    var desktopSelection: CGRect?
 
     init(sourceApp: NSRunningApplication?) { self.sourceApp = sourceApp }
 }
@@ -26,7 +29,7 @@ final class ScreenshotFlow {
         guard session == nil else { return }
         let synthetic = Self.syntheticCaptureURL()
         guard synthetic != nil || ScreenAccess.isGranted else {
-            PermissionWindowController.shared.show()
+            SettingsWindowController.shared.show(section: .permissions)
             return
         }
 
@@ -48,7 +51,7 @@ final class ScreenshotFlow {
                 guard self.session === active else { return }
                 self.closeSession(restoreFocus: false)
                 if case SnapshotFailure.permissionDenied = error {
-                    PermissionWindowController.shared.show()
+                    SettingsWindowController.shared.show(section: .permissions)
                 } else {
                     Alerts.show(error)
                 }
@@ -70,6 +73,44 @@ final class ScreenshotFlow {
         guard let image = overlay.renderScreenshot(),
               let window = overlay.window as? SelectionWindow else { return }
         finishCapture(image, screen: window.screen ?? NSScreen.main)
+    }
+
+    func beginDesktopSelection(at point: CGPoint) {
+        session?.dragAnchor = point
+        session?.desktopSelection = nil
+    }
+
+    func updateDesktopSelection(to point: CGPoint) -> Bool {
+        guard let session, session.overlays.count > 1, let anchor = session.dragAnchor else { return false }
+        let rect = MultiDisplayCapture.selection(from: anchor, to: point)
+        session.desktopSelection = rect
+        let displays = session.snapshots.map { CapturedDisplay(frame: $0.screen.frame, image: $0.image) }
+        let pixelSize = MultiDisplayCapture.outputPixelSize(selection: rect, displays: displays)
+        for overlay in session.overlays {
+            guard let window = overlay.window else { continue }
+            overlay.showDesktopSelection(MultiDisplayCapture.localRect(rect, in: window.frame),
+                                         pixelSize: pixelSize, showDimensions: window.frame.contains(anchor))
+        }
+        return true
+    }
+
+    func finishDesktopSelection(from overlay: SelectionCanvas, at point: CGPoint) -> Bool {
+        guard let session, session.overlays.count > 1, session.dragAnchor != nil else { return false }
+        _ = updateDesktopSelection(to: point)
+        session.dragAnchor = nil
+        guard let rect = session.desktopSelection,
+              rect.width >= SelectionManager.minimumSize, rect.height >= SelectionManager.minimumSize else {
+            session.overlays.forEach { $0.showDesktopSelection(nil, pixelSize: nil, showDimensions: true) }
+            return false
+        }
+        let displays = session.snapshots.map { CapturedDisplay(frame: $0.screen.frame, image: $0.image) }
+        guard let screenshot = MultiDisplayCapture.render(selection: rect, displays: displays) else {
+            Alerts.show(title: L("Couldn't export image"), message: L("Select the capture area and try again."))
+            closeSession(restoreFocus: true)
+            return true
+        }
+        finishCapture(screenshot, screen: overlay.window?.screen ?? NSScreen.main)
+        return true
     }
 
     func finish(_ output: CaptureOutput, from overlay: SelectionCanvas) {
@@ -114,6 +155,7 @@ final class ScreenshotFlow {
     }
 
     private func present(_ screenshots: [DisplaySnapshot], fullScreen: Bool, session: CaptureSession) {
+        session.snapshots = screenshots
         let pointer = NSEvent.mouseLocation
         if fullScreen, let screenshot = screenshots.first(where: { $0.screen.frame.contains(pointer) }) ?? screenshots.first {
             let image = RenderedScreenshot(image: screenshot.image, pointSize: screenshot.screen.frame.size)

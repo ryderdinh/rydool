@@ -13,7 +13,7 @@ struct RenderedScreenshot {
 }
 
 /// Maps a rectangular selection from overlay points to source image pixels.
-private struct PixelMapping {
+struct PixelMapping {
     let xScale: CGFloat
     let yScale: CGFloat
     let crop: CGRect

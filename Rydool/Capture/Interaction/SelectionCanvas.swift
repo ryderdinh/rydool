@@ -58,6 +58,7 @@ final class SelectionCanvas: NSView, NSTextFieldDelegate {
         selection = SelectionManager(bounds: CGRect(origin: .zero, size: frame.size))
         super.init(frame: frame)
         wantsLayer = true
+        chrome.imagePixelSize = CGSize(width: image.width, height: image.height)
         imageView.image = NSImage(cgImage: image, size: frame.size)
         imageView.imageScaling = .scaleAxesIndependently
         for child in [imageView, marks, chrome] as [NSView] {
@@ -133,12 +134,19 @@ final class SelectionCanvas: NSView, NSTextFieldDelegate {
         guard coordinator?.allowSelection(self) ?? true else { return }
         selection.clear()
         gesture = .selection(anchor: point)
+        if automaticallyFinishSelection, let window {
+            coordinator?.beginDesktopSelection(at: window.convertPoint(toScreen: event.locationInWindow))
+        }
         toolbar?.isHidden = true
         updateSelectionUI()
     }
 
     override func mouseDragged(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
+        if gesture.isSelecting, automaticallyFinishSelection, let window,
+           coordinator?.updateDesktopSelection(to: window.convertPoint(toScreen: event.locationInWindow)) == true {
+            return
+        }
         if case .annotation = gesture { marks.update(to: point); return }
         guard let updated = gesture.selection(at: point, in: selection) else { return }
         selection.set(updated)
@@ -147,6 +155,11 @@ final class SelectionCanvas: NSView, NSTextFieldDelegate {
 
     override func mouseUp(with event: NSEvent) {
         let created = gesture.isSelecting
+        if created, automaticallyFinishSelection, let window,
+           coordinator?.finishDesktopSelection(from: self, at: window.convertPoint(toScreen: event.locationInWindow)) == true {
+            gesture = .idle
+            return
+        }
         switch gesture {
         case .selection:
             let area = selection.rect ?? .zero
@@ -236,7 +249,16 @@ final class SelectionCanvas: NSView, NSTextFieldDelegate {
     private func updateSelectionUI() {
         chrome.selection = selection.rect
         chrome.showsHandles = selection.rect != nil && !gesture.isSelecting
+        chrome.displayedPixelSize = nil
+        chrome.showsDimensions = true
         marks.clipRect = selection.rect
+    }
+
+    func showDesktopSelection(_ rect: CGRect?, pixelSize: CGSize?, showDimensions: Bool) {
+        chrome.selection = rect
+        chrome.showsHandles = false
+        chrome.displayedPixelSize = pixelSize
+        chrome.showsDimensions = showDimensions
     }
 
     private func finish(_ output: CaptureOutput) {

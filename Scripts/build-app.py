@@ -107,6 +107,9 @@ def main() -> None:
         slices = build_slices(configuration, architectures, temporary)
         app = assemble(temporary, slices, create_icon(temporary), bundle_id)
         identity = signing_identity()
+        if identity == "-":
+            print("⚠ Ad hoc signing changes the app identity between builds; macOS may ask for permissions again. "
+                  "Use a consistent Apple signing identity via RYDOOL_SIGN_IDENTITY to preserve identity.", flush=True)
         print("→ Signing app…", flush=True)
         run("codesign", "--force", "--sign", identity, "--identifier", bundle_id, "--timestamp=none", str(app))
         run("codesign", "--verify", "--strict", str(app))

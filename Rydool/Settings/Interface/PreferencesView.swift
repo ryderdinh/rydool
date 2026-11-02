@@ -1,6 +1,11 @@
 import AppKit
+import Combine
 import SwiftUI
 import UniformTypeIdentifiers
+
+final class SettingsNavigation: ObservableObject {
+    @Published var section: SettingsSection = .general
+}
 
 /// Preferences displayed in the settings window.
 struct PreferencesView: View {
@@ -11,8 +16,15 @@ struct PreferencesView: View {
     @ObservedObject var historyRecorder: ShortcutCaptureController
     @ObservedObject var fullScreenRecorder: ShortcutCaptureController
     @ObservedObject var screenRecordingRecorder: ShortcutCaptureController
+    @ObservedObject var navigation: SettingsNavigation
     @State private var excludedApplicationError: String?
-    @State private var section: SettingsSection = .general
+    @State private var screenGranted = ScreenAccess.isGranted
+    @State private var accessibilityGranted = AccessibilityAccess.isGranted
+    @State private var microphoneGranted = MicrophoneAccess.isGranted
+    @State private var resettingPermission = false
+    @State private var permissionResetFailed = false
+    private let permissionRefresh = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    private var section: SettingsSection { navigation.section }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -26,6 +38,7 @@ struct PreferencesView: View {
                     case .recording: recordingSettings
                     case .shortcuts: shortcutSettings
                     case .clipboard: clipboardSettings
+                    case .permissions: permissionSettings
                     }
                 }
                 .frame(maxWidth: 620, alignment: .leading)
@@ -41,6 +54,12 @@ struct PreferencesView: View {
             historyRecorder.cancel()
             fullScreenRecorder.cancel()
             screenRecordingRecorder.cancel()
+        }
+        .onReceive(permissionRefresh) { _ in
+            guard section == .permissions else { return }
+            screenGranted = ScreenAccess.isGranted
+            accessibilityGranted = AccessibilityAccess.isGranted
+            microphoneGranted = MicrophoneAccess.isGranted
         }
     }
 
@@ -60,7 +79,7 @@ struct PreferencesView: View {
 
             VStack(spacing: 4) {
                 ForEach(SettingsSection.allCases) { item in
-                    Button { section = item } label: {
+                    Button { navigation.section = item } label: {
                         HStack(spacing: 10) {
                             Image(systemName: item.symbol).font(.system(size: 13, weight: .medium)).frame(width: 18)
                             Text(item.title).font(.system(size: 13, weight: section == item ? .semibold : .regular))
@@ -69,8 +88,7 @@ struct PreferencesView: View {
                         .foregroundStyle(section == item ? Color.accentColor : Color.primary)
                         .padding(.horizontal, 11)
                         .frame(height: 34)
-                        .background(section == item ? Color.accentColor.opacity(0.13) : .clear,
-                                    in: RoundedRectangle(cornerRadius: 8))
+                        .background { selectionSurface(isSelected: section == item) }
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -82,7 +100,26 @@ struct PreferencesView: View {
         }
         .frame(width: 176)
         .frame(maxHeight: .infinity, alignment: .topLeading)
-        .background(Color.primary.opacity(0.035))
+        .background { sidebarSurface }
+    }
+
+    @ViewBuilder private var sidebarSurface: some View {
+        if #available(macOS 26.0, *) {
+            Rectangle().fill(.regularMaterial)
+        } else {
+            Color.primary.opacity(0.035)
+        }
+    }
+
+    @ViewBuilder private func selectionSurface(isSelected: Bool) -> some View {
+        if isSelected {
+            if #available(macOS 26.0, *) {
+                RoundedRectangle(cornerRadius: 8).fill(Color.accentColor.opacity(0.08))
+                    .glassEffect(.regular.tint(Color.accentColor.opacity(0.12)), in: .rect(cornerRadius: 8))
+            } else {
+                RoundedRectangle(cornerRadius: 8).fill(Color.accentColor.opacity(0.13))
+            }
+        }
     }
 
     private var pageHeader: some View {
@@ -224,6 +261,92 @@ struct PreferencesView: View {
         }
     }
 
+    private var permissionSettings: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                Image(systemName: screenGranted && accessibilityGranted ? "checkmark.shield.fill" : "hand.raised.fill")
+                    .font(.system(size: 21, weight: .medium))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 44, height: 44)
+                    .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(screenGranted && accessibilityGranted ? L("You're all set") : L("Make Rydool work for you"))
+                        .font(.system(size: 15, weight: .semibold))
+                    Text(L("Choose what to allow in macOS. You can change this anytime."))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 4)
+
+            permissionRow(symbol: "viewfinder", color: .blue, title: L("Screen Recording"),
+                          description: L("Capture your screen and edit screenshots."),
+                          granted: screenGranted, service: .screenRecording, action: ScreenAccess.openSystemSettings)
+            permissionRow(symbol: "keyboard", color: .purple, title: L("Accessibility"),
+                          description: L("Use screenshot shortcuts and paste clipboard items into other apps."),
+                          granted: accessibilityGranted, service: .accessibility, action: AccessibilityAccess.openSystemSettings)
+            permissionRow(symbol: "mic", color: .orange, title: L("Microphone"),
+                          description: L("Optionally include your voice in screen recordings."),
+                          granted: microphoneGranted, service: .microphone, action: MicrophoneAccess.openSystemSettings)
+            if permissionResetFailed {
+                Text(L("Couldn't reset this permission. Remove Rydool from the corresponding list in System Settings, then add it again."))
+                    .font(.caption).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true)
+            }
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "info.circle").foregroundStyle(.secondary)
+                Text(L("After allowing Screen Recording, macOS may ask you to reopen Rydool."))
+                    .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                Button(L("Reopen Rydool"), action: ScreenAccess.relaunch).buttonStyle(.link)
+            }
+            .font(.caption)
+            .padding(.top, 2)
+        }
+    }
+
+    private func permissionRow(symbol: String, color: Color, title: String, description: String,
+                               granted: Bool, service: PermissionReset.Service, action: @escaping () -> Void) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            SettingsSymbol(symbol: symbol, color: color)
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 7) {
+                    Text(title).fontWeight(.semibold)
+                    Label(granted ? L("Allowed") : L("Not allowed"), systemImage: granted ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(granted ? Color.green : Color.secondary)
+                }
+                Text(description).font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 6) {
+                Button(granted ? L("Manage…") : L("Open Settings…"), action: action)
+                    .controlSize(.small)
+                Button(L("Reset permission")) { resetPermission(service, then: action) }
+                    .buttonStyle(.link).font(.caption)
+                    .disabled(resettingPermission)
+                    .help(L("Remove Rydool's saved permission and ask macOS again."))
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.07), lineWidth: 1))
+    }
+
+    private func resetPermission(_ service: PermissionReset.Service, then request: @escaping () -> Void) {
+        resettingPermission = true
+        permissionResetFailed = false
+        DispatchQueue.global(qos: .userInitiated).async {
+            let succeeded = (try? PermissionReset.reset(service)) != nil
+            DispatchQueue.main.async {
+                resettingPermission = false
+                if succeeded { request() } else { permissionResetFailed = true }
+            }
+        }
+    }
+
     private var clipboardSettings: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 10) {
@@ -303,8 +426,8 @@ struct PreferencesView: View {
     }
 }
 
-private enum SettingsSection: String, CaseIterable, Identifiable {
-    case general, recording, shortcuts, clipboard
+enum SettingsSection: String, CaseIterable, Identifiable {
+    case general, recording, shortcuts, clipboard, permissions
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -312,6 +435,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         case .recording: L("Recording")
         case .shortcuts: L("Shortcuts")
         case .clipboard: L("Clipboard")
+        case .permissions: L("Permissions")
         }
     }
     var symbol: String {
@@ -320,6 +444,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         case .recording: "record.circle"
         case .shortcuts: "keyboard"
         case .clipboard: "clipboard"
+        case .permissions: "hand.raised"
         }
     }
     var subtitle: String {
@@ -328,6 +453,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         case .recording: L("Choose the default quality and audio for screen recordings.")
         case .shortcuts: L("Choose shortcuts for quick access to your tools.")
         case .clipboard: L("Manage clipboard history and excluded apps.")
+        case .permissions: L("Give Rydool access to the features you want to use.")
         }
     }
 }

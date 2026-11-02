@@ -3,6 +3,13 @@ import XCTest
 @testable import Rydool
 
 final class SelectionBehaviorTests: XCTestCase {
+    func testDisplayedPixelDimensionsMatchTheCroppedImage() throws {
+        let mapping = try XCTUnwrap(PixelMapping(imageSize: CGSize(width: 301, height: 201),
+                                                 viewSize: CGSize(width: 150, height: 100),
+                                                 selection: CGRect(x: 10, y: 7, width: 31, height: 21)))
+        XCTAssertEqual(mapping.crop, CGRect(x: 20, y: 14, width: 63, height: 43))
+    }
+
     func testPointerGesturesConvertToClampedSelectionGeometry() {
         let manager = SelectionManager(bounds: CGRect(x: 0, y: 0, width: 200, height: 100))
         let select = CaptureGesture.selection(anchor: CGPoint(x: 20, y: 20))

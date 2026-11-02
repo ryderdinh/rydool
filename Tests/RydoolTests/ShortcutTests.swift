@@ -10,4 +10,12 @@ final class ShortcutTests: XCTestCase {
         XCTAssertEqual(ShortcutBinding.default.carbonModifiers, UInt32(cmdKey | shiftKey))
         XCTAssertEqual(ShortcutBinding.fullScreenDefault.carbonModifiers, UInt32(cmdKey | shiftKey))
     }
+
+    func testSystemScreenshotShortcutMatching() {
+        XCTAssertTrue(GlobalHotkeyManager.isSystemScreenshot(.default))
+        XCTAssertTrue(GlobalHotkeyManager.isSystemScreenshot(.fullScreenDefault))
+        XCTAssertTrue(GlobalHotkeyManager.isSystemScreenshot(ShortcutBinding(keyCode: UInt32(kVK_ANSI_4), modifiers: [.command, .shift, .control])))
+        XCTAssertFalse(GlobalHotkeyManager.isSystemScreenshot(ShortcutBinding(keyCode: UInt32(kVK_ANSI_5), modifiers: [.command, .shift, .control])))
+        XCTAssertFalse(GlobalHotkeyManager.isSystemScreenshot(ShortcutBinding(keyCode: UInt32(kVK_ANSI_4), modifiers: [.command, .option])))
+    }
 }

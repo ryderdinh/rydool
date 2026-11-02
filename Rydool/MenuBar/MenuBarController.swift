@@ -44,7 +44,7 @@ final class MenuBarController: NSObject {
                 MainActor.assumeIsolated { ScreenshotPreviews.shared.showRecent() }
             }, onGrantPermission: { [weak self] in
                 self?.closePopover()
-                PermissionWindowController.shared.show()
+                MainActor.assumeIsolated { SettingsWindowController.shared.show(section: .permissions) }
             }, onSettings: { [weak self] in
                 self?.closePopover()
                 MainActor.assumeIsolated { SettingsWindowController.shared.show() }

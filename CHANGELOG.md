@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.0.1 - 2026-11-02
+
+### Screen recording
+
+- Record a display or selected area to MP4, with optional system audio and microphone, configurable quality, and a global shortcut.
+
+### Screenshots and appearance
+
+- Zoom and fit screenshots in the editor.
+- See a clearer selection outline, resize handles, and the output size in pixels while choosing an area.
+- Drag a selection across displays. The combined image uses the highest pixel density among the selected displays.
+- Use Liquid Glass for screenshot controls, menu hover highlights, and Settings navigation on macOS 26 and later.
+- With Accessibility access, Rydool can intercept macOS screenshot shortcuts to avoid opening both capture tools.
+
+### Permissions and installation
+
+- Review Screen Recording, Accessibility, and microphone access on the new Permissions page, which opens on first launch.
+- Reset an individual permission from Settings if macOS retains an old entry after reinstalling.
+- The app is signed ad hoc and is not notarized; macOS may ask for permissions again after updating.
+
 ## 1.0.0 - 2026-11-01
 
 First public release of Rydool for macOS 14 or later, supporting Apple Silicon and Intel Macs.

@@ -54,7 +54,7 @@ final class RecordingCoordinator: ObservableObject {
         #else
         let testSetup = false
         #endif
-        guard ScreenAccess.isGranted || testSetup else { PermissionWindowController.shared.show(); return }
+        guard ScreenAccess.isGranted || testSetup else { SettingsWindowController.shared.show(section: .permissions); return }
         let setup = RecordingSetupWindow { [weak self] options in self?.chooseArea(options) }
         self.setup = setup
         setup.show()

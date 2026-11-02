@@ -1,6 +1,6 @@
 import AppKit
 import ApplicationServices
-import SwiftUI
+import AVFoundation
 
 /// Separates the macOS permission prompt and settings link from the UI.
 struct ScreenAccessGateway {
@@ -15,6 +15,29 @@ struct ScreenAccessGateway {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") else { return }
         open(url)
     }
+}
+
+/// Clears only this app's saved decision, allowing macOS to ask again.
+enum PermissionReset {
+    enum Service: String {
+        case screenRecording = "ScreenCapture"
+        case accessibility = "Accessibility"
+        case microphone = "Microphone"
+    }
+
+    static func reset(_ service: Service) throws {
+        guard let identifier = Bundle.main.bundleIdentifier else { throw ResetError.unavailable }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+        process.arguments = ["reset", service.rawValue, identifier]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationReason == .exit, process.terminationStatus == 0 else { throw ResetError.unavailable }
+    }
+
+    enum ResetError: Error { case unavailable }
 }
 
 /// Starts the reopen helper before terminating, so a launch failure leaves the app usable.
@@ -33,17 +56,12 @@ struct AppRelauncher {
 }
 
 enum ScreenAccess {
-    private static let onboardingKey = "hasShownPermissionOnboarding"
     private static let service = ScreenAccessGateway(
         check: { CGPreflightScreenCaptureAccess() },
         request: { _ = CGRequestScreenCaptureAccess() },
         open: { NSWorkspace.shared.open($0) }
     )
     static var isGranted: Bool { service.isGranted }
-    static var hasShownOnboarding: Bool {
-        get { UserDefaults.standard.bool(forKey: onboardingKey) }
-        set { UserDefaults.standard.set(newValue, forKey: onboardingKey) }
-    }
     static func openSystemSettings() { service.openSettings() }
 
     /// A newly granted macOS screen-capture permission can require a restart.
@@ -62,82 +80,26 @@ enum ScreenAccess {
     }
 }
 
-final class PermissionWindowController {
-    static let shared = PermissionWindowController()
-    private var panel: NSWindow?
+enum AccessibilityAccess {
+    static var isGranted: Bool { AXIsProcessTrusted() }
 
-    func show() {
-        if panel == nil { panel = makePanel() }
-        NSApp.activate(ignoringOtherApps: true)
-        panel?.makeKeyAndOrderFront(nil)
-    }
-
-    func close() { panel?.close() }
-
-    private func makePanel() -> NSWindow {
-        let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 380, height: 260),
-                             styleMask: [.titled, .closable, .fullSizeContentView],
-                             backing: .buffered, defer: false)
-        panel.titlebarAppearsTransparent = true
-        panel.titleVisibility = .hidden
-        panel.isReleasedWhenClosed = false
-        panel.level = .floating
-        panel.contentView = NSHostingView(rootView: PermissionView(close: { [weak self] in self?.close() }))
-        panel.center()
-        return panel
+    static func openSystemSettings() {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(options)
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
     }
 }
 
-private struct PermissionView: View {
-    @ObservedObject private var languageSettings = AppSettings.shared
-    let close: () -> Void
+enum MicrophoneAccess {
+    static var isGranted: Bool { AVCaptureDevice.authorizationStatus(for: .audio) == .authorized }
 
-    var body: some View {
-        VStack(spacing: 14) {
-            icon
-            explanation
-            actions
-        }
-        .padding(.horizontal, 28)
-        .padding(.top, 30)
-        .padding(.bottom, 18)
-        .frame(width: 380)
-    }
-
-    private var icon: some View {
-        Image(systemName: "viewfinder")
-            .font(.system(size: 30, weight: .medium))
-            .foregroundStyle(.white)
-            .frame(width: 56, height: 56)
-            .background(RoundedRectangle(cornerRadius: 13, style: .continuous).fill(Color.accentColor.gradient))
-    }
-
-    private var explanation: some View {
-        VStack(spacing: 6) {
-            Text(L("Rydool needs Screen Recording permission\nto capture your screen."))
-                .font(.headline)
-                .multilineTextAlignment(.center)
-            Text(L("Turn on Rydool in System Settings, then reopen Rydool. Screenshots never leave your Mac."))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var actions: some View {
-        VStack(spacing: 8) {
-            Button(action: ScreenAccess.openSystemSettings) {
-                Text(L("Open System Settings")).frame(maxWidth: .infinity)
-            }
-            .keyboardShortcut(.defaultAction)
-            .controlSize(.large)
-            HStack {
-                Button(L("Not Now"), action: close).buttonStyle(.borderless)
-                Spacer()
-                Button(L("Reopen Rydool"), action: ScreenAccess.relaunch).buttonStyle(.borderless)
-            }
-            .font(.callout)
+    static func openSystemSettings() {
+        if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
+            AVCaptureDevice.requestAccess(for: .audio) { _ in }
+        } else if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
+            NSWorkspace.shared.open(url)
         }
     }
 }

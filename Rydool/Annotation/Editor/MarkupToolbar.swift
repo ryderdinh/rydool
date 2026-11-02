@@ -20,10 +20,7 @@ struct MarkupToolbar: View {
             actions
         }
         .padding(5)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous)
-            .strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5))
-        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+        .modifier(MarkupToolbarSurface())
         .fixedSize()
     }
 
@@ -98,6 +95,20 @@ struct MarkupToolbar: View {
     private var separator: some View {
         Rectangle().fill(Color.primary.opacity(0.15))
             .frame(width: 1, height: 18).padding(.horizontal, 4)
+    }
+}
+
+private struct MarkupToolbarSurface: ViewModifier {
+    @ViewBuilder func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content.glassEffect(.regular, in: .rect(cornerRadius: 11))
+        } else {
+            content
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5))
+                .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+        }
     }
 }
 

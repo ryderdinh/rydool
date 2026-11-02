@@ -200,13 +200,25 @@ private struct ScreenshotPreviewView: View {
                     PreviewIconButton(symbol: "square.and.arrow.down", label: L("Save"), action: save)
                 }
                 .padding(3)
-                .background(.black.opacity(0.72), in: Capsule())
+                .modifier(PreviewControlsSurface())
                 .padding(7)
             }
         }
         .onHover { inside in
             hoverState.isHovering = inside
             hover(inside)
+        }
+    }
+}
+
+private struct PreviewControlsSurface: ViewModifier {
+    @ViewBuilder func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content
+                .glassEffect(.regular.interactive(), in: .capsule)
+                .environment(\.colorScheme, .dark)
+        } else {
+            content.background(.black.opacity(0.72), in: Capsule())
         }
     }
 }

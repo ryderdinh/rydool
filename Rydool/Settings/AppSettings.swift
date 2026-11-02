@@ -62,6 +62,7 @@ private struct PreferenceStore {
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
     private let store: PreferenceStore
+    let isFirstLaunch: Bool
 
     @Published var shortcut: ShortcutBinding { didSet { store.save(shortcut, key: .shortcut) } }
     @Published var historyShortcut: ShortcutBinding { didSet { store.save(historyShortcut, key: .historyShortcut) } }
@@ -97,6 +98,9 @@ final class AppSettings: ObservableObject {
     init(defaults: UserDefaults? = nil) {
         let preferences = defaults.map { PreferenceStore(defaults: $0) } ?? PreferenceStore.applicationStore()
         self.store = preferences
+        self.isFirstLaunch = preferences.defaults.object(forKey: "hasLaunchedRydool") == nil
+            && preferences.defaults.object(forKey: PreferenceKey.lineWeight.rawValue) == nil
+        preferences.defaults.set(true, forKey: "hasLaunchedRydool")
         self.shortcut = preferences.shortcut(.shortcut, fallback: .default)
         self.historyShortcut = preferences.shortcut(.historyShortcut, fallback: .historyDefault)
         self.fullScreenShortcut = preferences.shortcut(.fullScreenShortcut, fallback: .fullScreenDefault)
