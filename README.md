@@ -1,64 +1,157 @@
-# Rydool
+<p align="center">
+  <img src="docs/images/icon.png" width="128" height="128" alt="Rydool icon">
+</p>
 
-Rydool is a macOS menu bar app for clipboard history, screenshots, and annotations. It is under development; see the [implementation plan](docs/rydool-plan.md) and [verification status](docs/verification.md).
+<h1 align="center">Rydool</h1>
 
-## Download
+<p align="center">
+  Clipboard history, screenshots, annotation, and screen recording — all from your Mac's menu bar.
+</p>
 
-Download `Rydool-macos.dmg` from the [latest release](https://github.com/ryderdinh/rydool/releases/latest), open it, and drag Rydool to Applications. The app supports macOS 14 or later on Apple Silicon and Intel Macs.
+<p align="center">
+  <a href="https://github.com/ryderdinh/rydool/releases/latest"><img src="https://img.shields.io/github/v/release/ryderdinh/rydool?label=release" alt="Latest release"></a>
+  <a href="https://github.com/ryderdinh/rydool/actions/workflows/ci.yml"><img src="https://github.com/ryderdinh/rydool/actions/workflows/ci.yml/badge.svg" alt="Build and test"></a>
+  <img src="https://img.shields.io/badge/macOS-14%2B-blue?logo=apple" alt="macOS 14 or later">
+  <img src="https://img.shields.io/badge/Swift-5.10-orange?logo=swift" alt="Swift">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/ryderdinh/rydool" alt="MIT License"></a>
+</p>
 
-The release is signed ad hoc and is not notarized by Apple. If macOS blocks the first launch, open **System Settings → Privacy & Security** and choose **Open Anyway** for Rydool, then confirm. You may need to grant Screen Recording and Accessibility permissions for capture and automatic pasting.
+<p align="center">
+  <a href="https://github.com/ryderdinh/rydool/releases/latest"><b>Download</b></a> ·
+  <a href="#features">Features</a> ·
+  <a href="#keyboard-shortcuts">Shortcuts</a> ·
+  <a href="#permissions">Permissions</a> ·
+  <a href="CHANGELOG.md">Changelog</a>
+</p>
 
-See the [changelog](CHANGELOG.md) for release notes.
+<!-- Hero image: uncomment once docs/images/hero.png (or demo.gif) is added.
+<p align="center">
+  <img src="docs/images/hero.png" width="800" alt="Rydool capturing and annotating a screenshot">
+</p>
+-->
 
-## Build and run
+## Features
 
-Requirements: macOS 14 or later and Xcode 16.2 (or equivalent Command Line Tools). From the project directory:
+- **Clipboard history** — Search everything you copy (text and images), pin favorites, and paste back into any app with the keyboard.
+- **Screenshots** — Capture a region or a full display, even across multiple monitors. Every capture is copied to the clipboard instantly.
+- **Annotation editor** — Add arrows, shapes, text, and freehand strokes, then zoom, copy, or save as PNG.
+- **Screen recording** — Record a display or an area to MP4 at up to 60 FPS, with optional system audio and microphone.
+- **Lightweight and private** — Lives in the menu bar, stores data only on your Mac, with no account and no cloud sync.
+- **Localized** — English, Vietnamese, and Simplified Chinese.
+
+<!-- Feature screenshots: uncomment once the images are added to docs/images/.
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/clipboard-history.png" alt="Clipboard history"><br><sub>Clipboard history</sub></td>
+    <td align="center"><img src="docs/images/editor.png" alt="Annotation editor"><br><sub>Annotation editor</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/recording.png" alt="Screen recording setup"><br><sub>Screen recording</sub></td>
+    <td align="center"><img src="docs/images/settings.png" alt="Settings"><br><sub>Settings</sub></td>
+  </tr>
+</table>
+-->
+
+## Installation
+
+1. Download **`Rydool-macos.dmg`** from the [latest release](https://github.com/ryderdinh/rydool/releases/latest).
+2. Open the DMG and drag **Rydool** to **Applications**.
+3. Launch Rydool. It appears in the menu bar and opens **Settings → Permissions** on first launch.
+
+Requires **macOS 14 Sonoma or later**, on Apple Silicon or Intel.
+
+> [!NOTE]
+> Rydool is signed ad hoc and is not notarized by Apple. If macOS blocks the first launch, open **System Settings → Privacy & Security**, click **Open Anyway** next to Rydool, and confirm.
+
+## Keyboard shortcuts
+
+| Action | Default shortcut |
+| --- | --- |
+| Open clipboard history | `⌥` `⇧` `V` |
+| Capture a region | `⌘` `⇧` `4` |
+| Capture the display under the pointer | `⌘` `⇧` `3` |
+| Start / stop screen recording | `⌃` `⌥` `⇧` `R` |
+
+Shortcuts can be changed in **Settings → Shortcuts**. If a shortcut is already used by another app, Rydool lets you pick a different one; the menu bar actions always work.
+
+**In the editor:** `Enter` copies the image, `Shift`+`Enter` inserts a new line in text, and `Esc` cancels editing.
+
+## Permissions
+
+Rydool asks only for what each feature needs. You can review all permissions in **Settings → Permissions**.
+
+| Permission | Used for | Required? |
+| --- | --- | --- |
+| Screen Recording | Screenshots and screen recording | For capture |
+| Accessibility | Pasting automatically from history, and taking over the macOS screenshot shortcuts | Optional — without it, items are copied and you paste with `⌘V` |
+| Microphone | Recording your voice | Only when the microphone is enabled |
+
+## Usage
+
+### Clipboard history
+
+History is on by default and records anything copied after Rydool starts. Press `⌥⇧V`, type to search, and click an item (or use the arrow keys and `Enter`) to paste it into the app you were using. Pin items you use often; **Clear All** removes pinned items too. You can pause history from the menu at any time, and exclude apps under **Settings → Clipboard**.
+
+### Screenshots and annotation
+
+After a capture, a preview appears in the lower-right corner for five seconds (it stays while you hover over it). Click it to open the editor, or hover to copy, save, or dismiss it. Hidden previews can be reopened from **Recent Screenshots** in the menu until you quit; they are kept only in memory.
+
+When a region spans displays with different pixel densities, Rydool uses the highest one for the combined image.
+
+### Screen recording
+
+Choose **Record Screen** from the menu or press `⌃⌥⇧R`. Pick a display and the full screen or an area, then choose resolution (original, 1080p, 720p), 30 or 60 FPS, quality, and audio sources. System audio is on by default; the microphone is off. A red indicator in the menu bar shows that recording is active. When you stop, choose where to save the MP4 — if you cancel, use **Save recording…** in the menu later.
+
+## Privacy
+
+Rydool has no account, no telemetry, and no cloud sync. Clipboard history is stored locally in SQLite at `~/Library/Application Support/Rydool/`.
+
+Please keep in mind:
+
+- History is **not encrypted** by Rydool and may be included in your backups.
+- Rydool skips common password markers and the apps you exclude, but **this cannot catch every password**. Pause history when copying sensitive content.
+- The source app is inferred from the frontmost window and may be wrong.
+- Deleting an item does not guarantee secure erasure from SSDs or backups.
+- Only plain text and images are stored — not rich text or files.
+
+## Troubleshooting
+
+<details>
+<summary><b>A permission is granted, but Rydool still can't use it</b></summary>
+
+Ad hoc builds are identified per build, so macOS may keep an old entry after you update or reinstall. Open **Settings → Permissions**, choose **Reset permission**, and allow Rydool again. Quit and reopen Rydool if macOS asks you to.
+</details>
+
+<details>
+<summary><b>Pressing ⌘⇧4 opens both Rydool and the macOS screenshot tool</b></summary>
+
+Grant Rydool **Accessibility** access so it can handle the shortcut before macOS does, or choose different shortcuts in **Settings → Shortcuts**.
+</details>
+
+<details>
+<summary><b>A quick copy was not saved to history</b></summary>
+
+Rydool checks the clipboard periodically, so copies made in very quick succession can be missed. If too many items arrive at once, Rydool skips new ones and notifies you.
+</details>
+
+## Building from source
+
+Requires macOS 14 or later and Xcode 16.2 (or the matching Command Line Tools).
 
 ```sh
+git clone https://github.com/ryderdinh/rydool.git
+cd rydool
 swift test
 Scripts/build-app.sh debug
 open build/Rydool.app
 ```
 
-To package a release DMG locally, install `dmgbuild==1.6.6` in a Python environment, then run `Scripts/build-app.sh release` followed by `DMG_PYTHON=/path/to/python Scripts/package-dmg.sh`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for release builds, code signing, and UI tests.
 
-Run interactive UI tests with simulated data (requires a desktop session and Accessibility permission for the test process):
+## Contributing
 
-```sh
-python3 Tests/UI/run-smoke.py
-python3 Tests/UI/run-capture-smoke.py --region
-python3 Tests/UI/run-capture-smoke.py --save
-```
-
-These tests use a separate pasteboard and database and temporarily control the mouse and keyboard to interact with the UI. Simulated data mode is available only in debug builds.
-
-By default, the build script creates a universal binary for Apple Silicon and Intel. If exactly one valid Apple Development identity is available, the script uses it to keep the signature stable across builds; otherwise, it signs ad hoc. Set `ARCHS=arm64` to build only for Apple Silicon, or `RYDOOL_SIGN_IDENTITY` to choose an identity (`-` means ad hoc). Builds are not notarized, so macOS may require permission to open them in Privacy & Security. Screen Recording permission may need to be granted again after changing the signing identity or using an ad hoc build. Open the `.app` bundle in Finder or with `open`, as above; running the executable inside `Contents/MacOS` directly from VS Code can cause macOS to attribute the permission request to VS Code instead of Rydool.
-
-## Usage
-
-Open Rydool from its menu bar icon. Clipboard history is **enabled** by default and stores content copied after the app starts on the local machine. You can pause it from the menu or Settings; the pause state persists across restarts. Open history with `⌥⇧V`, search for text, and click an item once or select it with the arrow keys and Enter to close history and paste into the previously active app. The item moves to the top of its pinned or unpinned group without creating a duplicate. macOS may require Accessibility permission for automatic pasting; without it, the item is still copied so you can paste manually with `⌘V`. Use the buttons beside an item to pin or delete it. Clear All also deletes pinned items.
-
-Press `⌘⇧4` to capture a region or `⌘⇧3` to capture the entire display containing the pointer. A region can span multiple displays; when their pixel densities differ, Rydool uses the highest density for the combined image. Allow Rydool under **System Settings → Privacy & Security → Accessibility** so it can intercept these shortcuts before macOS handles them. Without this permission, the macOS screenshot action may also run; the menu remains available. The image is automatically copied to the clipboard immediately after capture. A preview appears in the lower-right corner and hides after five seconds; the countdown pauses while the pointer is over it or a save dialog is open. Click the preview to open the editor. Hover over it to reveal buttons to edit, copy, save a PNG, or close the preview. Multiple screenshots can be captured in succession; their previews are arranged side by side.
-
-While the app is running, hidden previews can be reopened using **Recent Screenshots** in the Rydool menu. Images are held only in memory: use **Copy** or **Save** before quitting if you want to keep them. The `×` button removes an image from this list.
-
-In the editor, use the toolbar to add arrows, shapes, text, or freehand strokes. Press Shift+Enter for a new line while entering text; Enter or Copy puts the image on the clipboard, Save opens a PNG dialog, and Esc cancels editing and returns to the preview. You can capture another screenshot while the editor is open; edits remain in that window. macOS requires Screen Recording permission for capture, and the app guides you through it the first time.
-
-Choose **Record Screen** from the menu bar or press `⌃⌥⇧R` to configure a screen recording. Select a display and either the full screen or an area, and optionally enable system audio or the microphone. System audio is on by default; the microphone is off. Choose the original resolution, 1080p or 720p, 30 or 60 FPS, a quality level, and audio sources in Settings → Recording or before recording; these choices are shared and remembered. Resolution limits preserve aspect ratio and never upscale. Actual frame rate depends on the display and system performance. A red indicator in the menu bar marks an active recording; select **Stop recording** or press the shortcut again to finish. Choose where to save the MP4 file. If you cancel the save dialog, select **Save recording…** from the menu to save it later. Rydool asks for microphone permission only when microphone recording is enabled. The shortcut can be changed under Settings → Shortcuts.
-
-
-Choose **Settings…** from the menu to open the settings window. Under **General → Language**, choose English (the default), Vietnamese, or Simplified Chinese; the change takes effect immediately and is remembered. macOS-provided dialogs may use the system language. Under Clipboard, choose **Add application…** to select an app to exclude; use the minus button beside its name to remove it. Exclusions apply to future copies, and the source app is inferred from the foreground window. Default capture shortcuts may conflict with other apps or macOS screenshot shortcuts. If registration fails, use the menu, choose different shortcuts, or release the shortcuts in the other app. Previously customized shortcuts are preserved.
-
-On first launch, Rydool opens **Settings → Permissions**. Use this page to review Screen Recording, Accessibility, and optional microphone access, open the corresponding macOS settings, and reopen Rydool if macOS requires it. Permission changes must be approved in macOS.
-
-If a reinstalled or rebuilt copy cannot use a previously granted permission, choose **Reset permission** for that permission, then allow Rydool again in macOS. Ad hoc signatures identify individual builds, so preserving permissions across updates requires signing all versions with a consistent Apple signing identity; the current release workflow uses ad hoc signing.
-
-## Data and privacy limitations
-
-History is stored in SQLite at `~/Library/Application Support/Rydool/`. Rydool does not separately encrypt the content, and it may be included in backups. Skipping common sensitive markers and excluded apps is a safeguard and **does not guarantee detection of every password**. The source app is inferred from the foreground app and may be wrong, especially for clipboard content from another device or a background task. Pause monitoring when you do not want to record content; the app does not save clipboard content that was already present before monitoring was enabled or resumed. Deletion is logical deletion and does not guarantee secure erasure from SSDs or backups. Polling may miss copies made too quickly; if the processing queue is full, the app skips new items and notifies you.
-
-The current version stores plain text and images, not rich text or files. The storage quota measures saved content; the actual size of SQLite, WAL, and thumbnail files may be larger. There is no cloud sync or account.
+Bug reports, feature requests, and pull requests are welcome. Please [open an issue](https://github.com/ryderdinh/rydool/issues) first for larger changes, and read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a pull request.
 
 ## License
 
-Copyright © 2026 ryderdinh. Rydool is available under the [MIT License](LICENSE).
+Copyright © 2026 ryderdinh. Rydool is released under the [MIT License](LICENSE).
